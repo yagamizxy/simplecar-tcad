@@ -267,7 +267,7 @@ namespace car
 				if (safe_reported ())
 				    return false;
 				    
-				if (!new_state->is_dead ())
+				if (forward_ && dead_flag_ && !new_state->is_dead ())
 					all_predeccessor_dead = false;
 					
 				if (frame_level < F_.size ())
@@ -283,7 +283,7 @@ namespace car
 		    }
 		}
 		
-		if (all_predeccessor_dead){
+		if (forward_ && dead_flag_ && all_predeccessor_dead){
 			Cube dead_uc;
 			if (is_dead (s, dead_uc)){
 				//cout << "dead: " << endl;
@@ -372,7 +372,7 @@ namespace car
 		
 	//////////////helper functions/////////////////////////////////////////////
 
-	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc)
+	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc,bool dead)
 	{
 	    
 		model_ = model;
@@ -394,7 +394,7 @@ namespace car
 		solver_call_counter_ = 0;
 		start_solver_call_counter_ = 0; 
 		partial_state_ = partial;
-		dead_flag_ = false;
+		dead_flag_ = dead;
 		//set propagate_ to be true by default
 		propagate_ = propagate;
 		
@@ -514,7 +514,7 @@ namespace car
 		else
 		{
 			bool con;
-		    Cube cu = solver_->get_conflict (bad_);
+		    Cube cu = solver_->get_conflict (bad_,minimal_uc_);
 	        if (cu.empty ())
 	        {
 	             report_safe ();

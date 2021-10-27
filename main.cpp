@@ -114,9 +114,9 @@ void check_aiger (int argc, char** argv)
    bool evidence = false;
    bool minimal_uc = false;
    bool gv = false; //to print dot format for graphviz 
-   
-   bool partial = true;
-   bool propagate = true;
+   bool dead = false;
+   bool partial = false;
+   bool propagate = false;
    bool begin = false;
    bool end = true;
    bool inter = true;
@@ -154,6 +154,14 @@ void check_aiger (int argc, char** argv)
    		}
    		else if (strcmp (argv[i], "-interation") == 0)
    			inter = true;
+      else if (strcmp (argv[i], "-muc") == 0)
+   			minimal_uc = true;
+      else if (strcmp (argv[i], "-dead") == 0)
+   			dead = true;
+      else if (strcmp (argv[i], "-partial") == 0)
+   			partial = true;
+      else if (strcmp (argv[i], "-propagate") == 0)
+   			propagate = true;
    		else if (strcmp (argv[i], "-rotation") == 0)
    			rotate = true;
    		else if (!input_set)
@@ -227,7 +235,7 @@ void check_aiger (int argc, char** argv)
    //which is consistent with the HWMCC format
    assert (model->num_outputs () >= 1);
    
-   ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc);
+   ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,dead);
 
    aiger_reset(aig);
    

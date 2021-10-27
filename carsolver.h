@@ -68,7 +68,7 @@ namespace car
 		//functions
 		bool solve_assumption ();
 		std::vector<int> get_model ();    //get the model from SAT solver
- 		std::vector<int> get_uc ();       //get UC from SAT solver
+ 		std::vector<int> get_uc (bool minimal);       //get UC from SAT solver
 		//zhang xiaoyu code begins
 		void update_assumption(std::vector<int> new_reason);
 		std::vector<int> get_solver_uc();  //get UC from sat solver 

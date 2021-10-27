@@ -87,9 +87,9 @@ namespace car
 	}
 	
 	//this version is used for bad check only
-	Cube MainSolver::get_conflict (const int bad)
+	Cube MainSolver::get_conflict (const int bad,const bool minimal)
 	{
-		Cube conflict = get_uc ();
+		Cube conflict = get_uc (minimal);
 		Cube res;
 		for (int i = 0; i < conflict.size (); i ++)
 		{
@@ -103,7 +103,7 @@ namespace car
 	
 	Cube MainSolver::get_conflict (const bool forward, const bool minimal, bool& constraint)
 	{
-		Cube conflict = get_uc ();
+		Cube conflict = get_uc (minimal);
 		
 		if (minimal)
 		{

@@ -76,7 +76,7 @@ class MainSolver : public CARSolver
 		Assignment get_state (const bool forward = true, const bool partial = false);
 		
 		//this version is used for bad check only
-		Cube get_conflict (const int bad);
+		Cube get_conflict (const int bad,const bool minimal);
 		Cube get_conflict (const bool forward, const bool minimal, bool& constraint);
 		
 		void add_new_frame (const Frame& frame, const int frame_level, const bool forward);
