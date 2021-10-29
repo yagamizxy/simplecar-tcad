@@ -267,7 +267,7 @@ namespace car
 				if (safe_reported ())
 				    return false;
 				    
-				if (forward_ && dead_flag_ && !new_state->is_dead ())
+				if (forward_ && dead_ && !new_state->is_dead ())
 					all_predeccessor_dead = false;
 					
 				if (frame_level < F_.size ())
@@ -283,7 +283,7 @@ namespace car
 		    }
 		}
 		
-		if (forward_ && dead_flag_ && all_predeccessor_dead){
+		if (forward_ && dead_ && all_predeccessor_dead){
 			Cube dead_uc;
 			if (is_dead (s, dead_uc)){
 				//cout << "dead: " << endl;
@@ -394,7 +394,9 @@ namespace car
 		solver_call_counter_ = 0;
 		start_solver_call_counter_ = 0; 
 		partial_state_ = partial;
-		dead_flag_ = dead;
+		dead_ = dead; //enable dead
+
+		dead_flag_ = false;
 		//set propagate_ to be true by default
 		propagate_ = propagate;
 		
