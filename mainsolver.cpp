@@ -44,9 +44,13 @@ namespace car
 	    //constraints
 		for (int i = 0; i < m->outputs_start (); i ++)
 			add_clause (m->element (i));
+		//bad 
+		for (int i = m->bad_start (); i < m->outputs_start (); i ++)
+			add_clause (m->element (i));
 		//outputs
 		for (int i = m->outputs_start (); i < m->latches_start (); i ++)
 			add_clause (m->element (i));
+
 		//latches
 		for (int i = m->latches_start (); i < m->size (); i ++)
 		    add_clause (m->element (i));

@@ -42,6 +42,7 @@ namespace car{
 		num_ands_ = aig->num_ands;
 		num_constraints_ = aig->num_constraints;
 		num_outputs_ = aig->num_outputs;
+		num_bad_ = aig->num_bad;
 		
 		//preserve two more ids for TRUE (max_id_ - 1) and FALSE (max_id_)
 		max_id_ = aig->maxvar+2;
@@ -52,6 +53,7 @@ namespace car{
 		
 		set_constraints (aig);
 		set_outputs (aig);
+		set_bads (aig);
 		
 		set_init (aig);
 		
@@ -128,7 +130,12 @@ namespace car{
 		gates.resize (max_id_+1, 0);
 		//create clauses for constraints
 		collect_necessary_gates (aig, aig->constraints, aig->num_constraints, exist_gates, gates);
-		
+		for (int i=0; i<constraints_.size();i++)
+		{
+			Clause temp_constrain;
+			temp_constrain.push_back(constraints_[i]);
+			cls_.push_back(temp_constrain);
+		}
 		for (vector<unsigned>::iterator it = gates.begin (); it != gates.end (); it ++)
 		{
 		    if (*it == 0) continue; 
@@ -137,6 +144,19 @@ namespace car{
 			add_clauses_from_gate (aa);
 		}
 		
+		set_bad_start ();
+		
+		//create clauses for outputs
+		gates.resize (max_id_+1, 0);
+		collect_necessary_gates (aig, aig->bad, aig->num_bad, exist_gates, gates);
+		
+		for (vector<unsigned>::iterator it = gates.begin (); it != gates.end (); it ++)
+		{
+		    if (*it == 0) continue;
+			aiger_and* aa = aiger_is_and (const_cast<aiger*>(aig), *it);
+			assert (aa != NULL);
+			add_clauses_from_gate (aa);
+		}
 		
 		set_outputs_start ();
 		
@@ -164,10 +184,14 @@ namespace car{
 			assert (aa != NULL);
 			add_clauses_from_gate (aa);
 		}
+
+
 		
 		//create clauses for true and false
 		cls_.push_back (clause (true_));
 		cls_.push_back (clause (-false_));
+
+
 	}
 	
 	
@@ -252,7 +276,7 @@ namespace car{
 				init_.push_back (-(num_inputs_+1+i));
 			else if (aig->latches[i].reset == 1)
 				init_.push_back (num_inputs_+1+i);
-			else
+			else if (aig->latches[i].reset != aig->latches[i].lit)
 			{
 				cout << "Error setting initial state!" << endl;
 				exit (0);
@@ -275,6 +299,15 @@ namespace car{
 		{
 			int id = (int) aig->outputs[i].lit;
 			outputs_.push_back ((id%2 == 0) ? (id/2) : -(id/2));
+		}
+	}
+
+	void Model::set_bads (const aiger* aig)
+	{
+		for (int i = 0; i < aig->num_bad; i ++)
+		{
+			int id = (int) aig->bad[i].lit;
+			bads_.push_back ((id%2 == 0) ? (id/2) : -(id/2));
 		}
 	}
 	

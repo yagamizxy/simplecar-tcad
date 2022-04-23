@@ -31,8 +31,9 @@ namespace car
 {
     ///////////////////////////////////main functions//////////////////////////////////
     bool Checker::check (std::ofstream& out){
-	    for (int i = 0; i < model_->num_outputs (); i ++){
-	        bad_ = model_->output (i);
+		Cube& bads = (model_->num_bad () == 0)?model_->outputs():model_->bads();
+	    for (int i = 0; i < bads.size(); i ++){
+	        bad_ = bads[i];
 	        
 	        //for the particular case when bad_ is true or false
 	        if (bad_ == model_->true_id ()){

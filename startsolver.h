@@ -34,8 +34,12 @@ namespace car {
         StartSolver (const Model* m, const int bad, const bool forward, const bool verbose = false)
         {
             verbose_ = verbose;
-            if (!forward)
-                add_cube (const_cast<Model*>(m)->init ());
+            if (!forward){
+                 add_cube (const_cast<Model*>(m)->init ());
+                 for (int i = 0; i < const_cast<Model*>(m)->bad_start (); i ++)
+                    add_clause (const_cast<Model*>(m)->element (i));    
+            }
+               
             else
             {
                 for (int i = 0; i < const_cast<Model*>(m)->latches_start (); i ++)

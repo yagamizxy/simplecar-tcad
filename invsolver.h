@@ -38,7 +38,7 @@ namespace car
 			{
 				model_ = const_cast<Model*> (m);
 			    verbose_ = verbose;
-			    int end = model_->outputs_start ();
+			    int end = model_->bad_start ();
 			    for (int i = 0; i < end ; i ++)
                     add_clause (model_->element (i));
 			}
