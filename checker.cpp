@@ -273,7 +273,7 @@ namespace car
 
 				stats_->count_update_B_time_start ();
 			    update_B_sequence (new_state);
-			    stats_->count_update_F_time_end ();
+			    stats_->count_update_B_time_end ();
 				
 			    if (try_satisfy_by (new_level, new_state))
 				    return true;
