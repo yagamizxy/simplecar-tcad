@@ -31,7 +31,7 @@
 namespace car {
     class StartSolver : public CARSolver {
     public:
-        StartSolver (const Model* m, const int bad, const bool forward, const bool verbose = false)
+        StartSolver (const Model* m, Statistics* stats,const int bad, const bool forward, const bool verbose = false)
         {
             verbose_ = verbose;
             if (!forward){
@@ -50,6 +50,7 @@ namespace car {
             forward_ = forward;
             max_id_ = const_cast<Model*>(m)->max_id () + 1;
             flag_ = max_id_;
+            stats_ = stats;
         }
         ~StartSolver () {}
         
@@ -57,7 +58,7 @@ namespace car {
         {
         	if (verbose_)
         		std::cout << "StartSolver::";
-        	return solve_assumption ();
+        	return solve_assumption (3);
         }
         
         inline void reset ()

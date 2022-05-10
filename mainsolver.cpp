@@ -33,8 +33,9 @@ namespace car
 	//int MainSolver::max_flag_ = -1;
 	//vector<int> MainSolver::frame_flags_;
 	
-	MainSolver::MainSolver (Model* m, Statistics* stats, const bool verbose) 
+	MainSolver::MainSolver (Model* m, Statistics* stats, int SAT_type, const bool verbose) 
 	{
+		SAT_type_ = SAT_type;
 	    verbose_ = verbose;
 	    stats_ = stats;
 		model_ = m;

@@ -119,9 +119,11 @@ namespace car
             return var(l) + 1;
     }
  	
- 	bool CARSolver::solve_assumption ()
+ 	bool CARSolver::solve_assumption (int SAT_type)
 	{
+		stats_->new_count_SAT_time_start();
 		lbool ret = solveLimited (assumption_);
+		stats_->new_count_SAT_time_end(SAT_type);
 		/*
 		if (verbose_)
 		{
@@ -205,7 +207,7 @@ namespace car
 			update_assumption(mus);    //merge mus core with assumption
 
             //stats_->count_get_uc_solver_SAT_time_start ();
-			bool res = solve_assumption();
+			bool res = solve_assumption(6);
 			//stats_->count_get_uc_solver_SAT_time_end ();
 			for(int i=0;i<mus.size();i++)
 			{

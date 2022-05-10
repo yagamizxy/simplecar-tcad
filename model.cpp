@@ -133,9 +133,10 @@ namespace car{
 		for (int i=0; i<constraints_.size();i++)
 		{
 			Clause temp_constrain;
-			temp_constrain.push_back(constraints_[i]);
+			temp_constrain.push_back(-constraints_[i]);
 			cls_.push_back(temp_constrain);
 		}
+
 		for (vector<unsigned>::iterator it = gates.begin (); it != gates.end (); it ++)
 		{
 		    if (*it == 0) continue; 
@@ -369,6 +370,17 @@ namespace car{
 				tmp.push_back (uc[i]);
 			else
 				constraint = false;
+		}
+		uc = tmp;
+	}
+
+	void Model::shrink_to_input_vars (Cube& uc)
+	{
+		Cube tmp;
+		for (int i = 0; i < uc.size (); i ++)
+		{
+			if (input_var (abs (uc[i])))
+				tmp.push_back (uc[i]);
 		}
 		uc = tmp;
 	}

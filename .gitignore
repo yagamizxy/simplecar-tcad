@@ -2,4 +2,6 @@
 *.log
 *.res
 *.ps
+*.aig
+*.aag
 simplecar

@@ -34,9 +34,10 @@ namespace car
 	class InvSolver : public CARSolver
 	{
 		public:
-			InvSolver (const Model* m, bool verbose = false) : id_aiger_max_ (const_cast<Model*>(m)->max_id ())
+			InvSolver (const Model* m,Statistics* stats,bool verbose = false) : id_aiger_max_ (const_cast<Model*>(m)->max_id ())
 			{
 				model_ = const_cast<Model*> (m);
+				stats_ = stats;
 			    verbose_ = verbose;
 			    int end = model_->bad_start ();
 			    for (int i = 0; i < end ; i ++)
@@ -48,7 +49,7 @@ namespace car
 			{
 				if (verbose_)
 					std::cout << "InvSolver::";
-				return solve_assumption ();
+				return solve_assumption (2);
 			}
 			
 			inline void add_constraint_or (const Frame &frame, bool forward = false)

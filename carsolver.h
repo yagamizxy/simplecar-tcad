@@ -65,8 +65,9 @@ namespace car
 		//Glucose::vec<Glucose::Lit> assumption_;  //Assumption for SAT solver     
 		#endif
 		Statistics* stats_;   //zhang xiaoyu made this change
+		int SAT_type_;
 		//functions
-		bool solve_assumption ();
+		bool solve_assumption (int SAT_type);
 		std::vector<int> get_model ();    //get the model from SAT solver
  		std::vector<int> get_uc (bool minimal);       //get UC from SAT solver
 		//zhang xiaoyu code begins

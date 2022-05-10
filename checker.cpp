@@ -119,8 +119,13 @@ namespace car
 			
 			if (propagate_){
 				clear_frame ();
-				if (propagate ())
+				stats_->count_propagate_time_start();
+				if (propagate ()){
+					stats_->count_propagate_time_end();
 					return false;
+				}
+				else
+					stats_->count_propagate_time_end();	
 			}
 			
 			frame_level ++;
@@ -226,8 +231,12 @@ namespace car
 	
 	bool Checker::try_satisfy_by (int frame_level, State* s)
 	{
-		if (tried_before (s, frame_level+1))
+		stats_->count_try_before_time_start ();
+		if (tried_before (s, frame_level+1)){
+			stats_->count_try_before_time_end ();
 			return false;
+		}
+		stats_->count_try_before_time_end ();	
 		
 		//if (frame_level < minimal_update_level_)
 			//minimal_update_level_ = frame_level;
@@ -258,11 +267,14 @@ namespace car
 			    if (dot_ != NULL)
 			        (*dot_) << "\n\t\t\t" << const_cast<State*> (s)->id () << " -- " << new_state->id ();
 			    //////generate dot data
-			    
+			    stats_->count_get_new_level_time_start ();
 			    int new_level = get_new_level (new_state, frame_level);
+				stats_->count_get_new_level_time_end ();
 
+				stats_->count_update_B_time_start ();
 			    update_B_sequence (new_state);
-			    
+			    stats_->count_update_F_time_end ();
+				
 			    if (try_satisfy_by (new_level, new_state))
 				    return true;
 				if (safe_reported ())
@@ -273,13 +285,16 @@ namespace car
 					
 				if (frame_level < F_.size ())
 				{
-				    
+				    stats_->count_try_before_time_start ();
 				    while (tried_before (s, frame_level+1))
 				    {
 				        frame_level = frame_level + 1;
-					    if (frame_level >= F_.size ())
-						    return false;	
+					    if (frame_level >= F_.size ()){
+							stats_->count_try_before_time_end ();
+							return false;
+						}  	
 				    }
+					stats_->count_try_before_time_end ();
 				}
 		    }
 		}
@@ -295,8 +310,9 @@ namespace car
 				return false;
 			}
 		}
-
+		stats_->count_update_F_time_start ();
 		update_F_sequence (s, frame_level+1);
+		stats_->count_update_F_time_end ();
 		if (safe_reported ())
 			return false;
 		
@@ -363,7 +379,7 @@ namespace car
 		//solver_->print_assumption();
 		//solver_->print_clauses();
 	    stats_->count_main_solver_SAT_time_start ();
-		bool res = solver_->solve_with_assumption ();
+		bool res = solver_->propagate_solve_with_assumption ();
 		stats_->count_main_solver_SAT_time_end ();
 		if (!res)
 			return true;
@@ -441,13 +457,13 @@ namespace car
 	
 	void Checker::car_initialization ()
 	{
-	    solver_ = new MainSolver (model_, stats_, verbose_);
+	    solver_ = new MainSolver (model_, stats_,1, verbose_);
 	    if (forward_){
-	    	lift_ = new MainSolver (model_, stats_, verbose_);
-	    	dead_solver_ = new MainSolver (model_, stats_, verbose_);
+	    	lift_ = new MainSolver (model_, stats_, 5,verbose_);
+	    	dead_solver_ = new MainSolver (model_, stats_, 4,verbose_);
 	    	dead_solver_->add_clause (-bad_);
 	    }
-		start_solver_ = new StartSolver (model_, bad_, forward_, verbose_);
+		start_solver_ = new StartSolver (model_, stats_,bad_, forward_, verbose_);
 		assert (F_.empty ());
 		assert (B_.empty ());
 		
@@ -727,6 +743,8 @@ namespace car
 		if (!forward_) 
 			return;
 		Cube assumption = st;
+		Cube st_input = st;
+		model_->shrink_to_input_vars(st_input);
 		if (s != NULL){
 			Cube& cube = s->s();
 			Clause cl;
@@ -744,6 +762,7 @@ namespace car
 			assert (!ret);
 			bool constraint = false;
 			st = lift_->get_conflict (!forward_, minimal_uc_, constraint);
+			//st.insert(st_input.begin(),st_input.end(),st.end());
 			if (st.empty()){
 			//every state can reach s, thus make st the initial state.
 				st = init_->s();
@@ -769,6 +788,7 @@ namespace car
 					break;
 				}
 			}
+			//st.insert(st_input.begin(),st_input.end(),st.end());
 			
 			assert (!st.empty());
 		}
