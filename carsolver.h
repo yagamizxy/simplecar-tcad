@@ -73,9 +73,10 @@ namespace car
 		//zhang xiaoyu code begins
 		void update_assumption(std::vector<int> new_reason);
 		std::vector<int> get_solver_uc();  //get UC from sat solver 
-	    std::vector<int> get_mus(std::vector<int> mus_reason);
-		
-        // void recursive_model_rotation();
+	    //std::vector<int> get_mus(std::vector<int> mus_reason);
+		void get_mus (std::vector<std::vector<int> >& muses, std::vector<int>& res);
+        bool SAT (std::vector<int>& mus, std::vector<std::vector<int> >& muses);
+		void remove_from (std::vector<std::vector<int> >& muses, std::vector<int>& uc);
 	    //zhang xiaoyu code ends	
 		void add_cube (const std::vector<int>&);
 		void add_clause_from_cube (const std::vector<int>&);
