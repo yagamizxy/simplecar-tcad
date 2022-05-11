@@ -26,6 +26,7 @@
 #include "utility.h"
 #include "statistics.h"
 using namespace std;
+#define __DEBUG__
 
 namespace car
 {
@@ -158,6 +159,10 @@ namespace car
 		State *s = enumerate_start_state ();
 		while (s != NULL)
 		{
+	#ifdef __DEBUG__
+		std::cout<<"--------------"<<std::endl;
+		std::cout<<"pick a start state: "<<s<<std::endl;
+	#endif
 		
 		    if (!forward_) //for dot drawing
 			    s->set_initial (true);
@@ -231,8 +236,16 @@ namespace car
 	
 	bool Checker::try_satisfy_by (int frame_level, State* s)
 	{
+	#ifdef __DEBUG__
+		std::cout<<"--------------"<<std::endl;
+		std::cout<<"try state framelevel pair : "<<s<<" , "<<frame_level<<std::endl;
+	#endif
 		stats_->count_try_before_time_start ();
 		if (tried_before (s, frame_level+1)){
+
+	#ifdef __DEBUG__
+		std::cout<<"state is tried before: "<<s<<std::endl;
+	#endif
 			stats_->count_try_before_time_end ();
 			return false;
 		}
@@ -270,7 +283,9 @@ namespace car
 			    stats_->count_get_new_level_time_start ();
 			    int new_level = get_new_level (new_state, frame_level);
 				stats_->count_get_new_level_time_end ();
-
+	#ifdef __DEBUG__
+		std::cout<<"find new state frame level pair: "<<new_state<<" , "<<new_level<<std::endl;
+	#endif
 				stats_->count_update_B_time_start ();
 			    update_B_sequence (new_state);
 			    stats_->count_update_B_time_end ();
@@ -302,6 +317,9 @@ namespace car
 		if (forward_ && dead_ && all_predeccessor_dead){
 			Cube dead_uc;
 			if (is_dead (s, dead_uc)){
+	#ifdef __DEBUG__
+		std::cout<<"state is detected as dead state: "<<s<<std::endl;
+	#endif
 				//cout << "dead: " << endl;
 				//car::print (dead_uc);
 				s->mark_dead ();
@@ -310,9 +328,12 @@ namespace car
 				return false;
 			}
 		}
-		stats_->count_update_F_time_start ();
+	#ifdef __DEBUG__
+		std::cout<<"add correponding uc to F: "<<s<<std::endl;
+	#endif
+		//stats_->count_update_F_time_start ();
 		update_F_sequence (s, frame_level+1);
-		stats_->count_update_F_time_end ();
+		//stats_->count_update_F_time_end ();
 		if (safe_reported ())
 			return false;
 		
@@ -829,6 +850,8 @@ namespace car
 		}
 		*/
 		
+		stats_->count_update_F_time_start ();
+		
 		
 		//foward cu MUST rule out those not in \@s
 		if (forward_){
@@ -894,7 +917,7 @@ namespace car
 			for (int i = frame_level-1; i >= 1; --i)
 				push_to_frame (cu, i);
 		}
-		
+		stats_->count_update_F_time_end ();
 		
 	}
 	

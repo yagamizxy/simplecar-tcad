@@ -276,6 +276,7 @@ class Statistics
             update_F_end_ = clock ();
 	        double duration = double (update_F_end_ - update_F_begin_) / CLOCKS_PER_SEC;
 	        new_time_update_F_ += duration;
+            //std::cout<<"F begin: "<<update_F_begin_<<" F end: "<<update_F_end_<<std::endl;
         }
 
         inline void count_update_B_time_start ()
