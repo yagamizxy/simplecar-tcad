@@ -183,6 +183,61 @@ namespace car
     	return reason;
 	}
     //count_main_solver_SAT_time_end 
+	//compute MUS by binary search
+	void CARSolver::get_mus (std::vector<std::vector<int> >& muses, std::vector<int>& res)
+	{
+		if (muses.empty ())
+			return;
+		std::vector<int>& tmp_mus = muses.back ();
+		muses.pop_back ();
+		
+		if (tmp_mus.size () == 1)
+			res.emplace_back (tmp_mus[0]);
+		else
+		{
+			std::vector<int> tmp_mus_1 (tmp_mus.begin(), tmp_mus.begin()+(tmp_mus.size()/2));
+			std::vector<int> tmp_mus_2 (tmp_mus.begin()+(tmp_mus.size()/2), tmp_mus.end());
+			if (!SAT (tmp_mus_1, muses))
+			{
+				muses.emplace_back (tmp_mus_1);
+				std::vector<int>& reason = get_solver_uc();
+				remove_from (muses, reason);
+			}
+			else if (!SAT (tmp_mus_2, muses))
+			{
+				muses.emplace_back (tmp_mus_2);
+				std::vector<int>& reason = get_solver_uc();
+				remove_from (muses, reason);
+			}
+			else
+			{
+				muses.emplace_back (tmp_mus_1);
+				muses.emplace_back (tmp_mus_2);
+			}
+		}	
+		get_mus (muses, res);
+	}
+	//SAT call with all elements in \@mus and \@muses being the assumptions
+	bool CARSolver::SAT (std::vector<int>& mus, std::vector<std::vector<int> >& muses)
+	{
+
+	}
+	//remove the elements in \@muses those not in \@uc
+	void CARSolver::remove_from (std::vector<std::vector<int> >& muses, std::vector<int>& uc)
+	{
+		hash_map<int> uc_map (uc.begin(), uc.end());
+		for (auto it = muses.begin(); it != muses.end(); ++it)
+		{
+			std::vector<int>& mus = *it;
+			std::vector<int> tmp_mus;
+			for (auto it2 = mus.begin(); it2 != mus.end(); ++it2)
+			{
+				if (uc_map.find (*it2) != uc_map.end ())
+					tmp_mus.emplace_back (*it2);
+			}
+			mus = tmp_mus;
+		}
+	}
 	std::vector<int> CARSolver::get_mus(std::vector<int> m_reason)
 	{
 		std::vector<int> mus;                       //mus core
