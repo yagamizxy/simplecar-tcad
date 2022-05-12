@@ -26,7 +26,7 @@
 #include "utility.h"
 #include "statistics.h"
 using namespace std;
-#define __DEBUG__
+//#define __DEBUG__
 
 namespace car
 {

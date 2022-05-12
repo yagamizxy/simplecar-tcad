@@ -191,7 +191,7 @@ namespace car
 	{
 		if (muses.empty ())
 			return;
-		std::vector<int>& tmp_mus = muses.back ();
+		std::vector<int> tmp_mus = muses.back ();
 		muses.pop_back ();
 		
 		if (tmp_mus.size () == 1)
