@@ -23,6 +23,7 @@
  */
  
 #include "carsolver.h"
+#include "utility.h"
 #include <iostream>
 #include <vector>
 #include <set>
@@ -330,10 +331,18 @@ namespace car
 			//cout << endl;
 		if(minimal)
 		{
+			#ifdef __DEBUG__
+				cout << "before MUS: " << reason.size() << endl;
+				car::print (reason);
+			#endif
 			std::vector<std::vector<int> > muses;
 			muses.push_back(reason);
 			std::vector<int> res;
 			get_mus(muses,res);
+			#ifdef __DEBUG__
+				cout << "after MUS " << res.size() << endl;
+				car::print (res);
+			#endif
 			return  res;
 		}
     	else return reason;
