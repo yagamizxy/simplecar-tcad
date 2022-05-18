@@ -35,7 +35,7 @@ extern "C" {
 namespace car {
 class Model {
 public:
-	Model (aiger*, const bool verbose = false);
+	Model (aiger*, const bool forward, const bool verbose = false);
 	~Model () {}
 	
 	int prime (const int);
@@ -78,6 +78,7 @@ public:
 private:
 	//members
 	bool verbose_;
+	bool forward_;
 		
 	int num_inputs_;
 	int num_latches_;

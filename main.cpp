@@ -223,7 +223,7 @@ void check_aiger (int argc, char** argv)
      aiger_reencode(aig);
      
    stats.count_model_construct_time_start ();
-   model = new Model (aig);
+   model = new Model (aig, forward);
    stats.count_model_construct_time_end ();
    
    if (verbose)

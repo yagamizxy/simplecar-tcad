@@ -33,9 +33,10 @@ using namespace std;
 
 namespace car{
 
-	Model::Model (aiger* aig, const bool verbose)
+	Model::Model (aiger* aig, const bool forward, const bool verbose)
 	{
 	    verbose_ = verbose;
+		forward_ = forward;
 	//According to aiger format, inputs should be [1 ... num_inputs_]
 	//and latches should be [num_inputs+1 ... num_latches+num_inputs]]
 		num_inputs_ = aig->num_inputs;
@@ -147,27 +148,32 @@ namespace car{
 		}
 
 		//create constraints from reverse_next_map_
+		//only for forward CAR
 		//if previous (i) > 1, then every element in previous (i) must have the same value
-		int start = cls_.size();
-		for (auto it = reverse_next_map_.begin(); it != reverse_next_map_.end (); ++it)
+		if (forward_)
 		{
-			if ((it->second).size() > 1)
+			int start = cls_.size();
+			for (auto it = reverse_next_map_.begin(); it != reverse_next_map_.end (); ++it)
 			{
-				//cout << it->first << "===>";
-				//car::print (it->second);
-				vector<Clause> cls = create_constraint_from_previous (it->second);
-				for (int i = 0; i < cls.size(); ++i)
-					cls_.emplace_back (cls[i]);
-			}
+				if ((it->second).size() > 1)
+				{
+					//cout << it->first << "===>";
+					//car::print (it->second);
+					vector<Clause> cls = create_constraint_from_previous (it->second);
+					for (int i = 0; i < cls.size(); ++i)
+						cls_.emplace_back (cls[i]);
+				}
 			
+			}
+			/*
+			cout << "create constraints" << endl;
+			for (int i = start; i < cls_.size(); ++i)
+			{
+				car::print (cls_[i]);
+			}
+			*/
 		}
-		/*
-		cout << "create constraints" << endl;
-		for (int i = start; i < cls_.size(); ++i)
-		{
-			car::print (cls_[i]);
-		}
-		*/
+		
 		
 		set_bad_start ();
 		
