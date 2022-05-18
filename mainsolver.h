@@ -83,12 +83,11 @@ class MainSolver : public CARSolver
 		//this version is used for bad check only
 		Cube get_conflict (const int bad,const bool minimal);
 		Cube get_conflict (const bool forward, const bool minimal, bool& constraint);
+		Cube get_conflict (const State* s, const bool forward, const bool minimal, bool& constraint);
 		
 		void add_new_frame (const Frame& frame, const int frame_level, const bool forward);
 		//overload
 		void add_clause_from_cube (const Cube& cu, const int frame_level, const bool forward_);
-		
-		bool solve_with_assumption_for_temporary (Cube& s, int frame_level, bool forward, Cube& tmp_block);
 		
 		inline void update_constraint (Cube& cu)
 		{

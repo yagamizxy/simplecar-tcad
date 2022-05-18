@@ -27,6 +27,7 @@
 #include <iostream>
 #include <assert.h>
 #include <vector>
+#include <algorithm>
 
 using namespace std;
 
@@ -144,6 +145,29 @@ namespace car{
 			assert (aa != NULL);
 			add_clauses_from_gate (aa);
 		}
+
+		//create constraints from reverse_next_map_
+		//if previous (i) > 1, then every element in previous (i) must have the same value
+		int start = cls_.size();
+		for (auto it = reverse_next_map_.begin(); it != reverse_next_map_.end (); ++it)
+		{
+			if ((it->second).size() > 1)
+			{
+				//cout << it->first << "===>";
+				//car::print (it->second);
+				vector<Clause> cls = create_constraint_from_previous (it->second);
+				for (int i = 0; i < cls.size(); ++i)
+					cls_.emplace_back (cls[i]);
+			}
+			
+		}
+		/*
+		cout << "create constraints" << endl;
+		for (int i = start; i < cls_.size(); ++i)
+		{
+			car::print (cls_[i]);
+		}
+		*/
 		
 		set_bad_start ();
 		
@@ -193,6 +217,30 @@ namespace car{
 		cls_.push_back (clause (-false_));
 
 
+	}
+
+	std::vector<Clause> Model::create_constraint_from_previous (std::vector<int>& elements)
+	{
+		int flag1 = ++max_id_;
+		int flag2 = ++max_id_;
+		vector<Clause> res;
+		Clause cl;
+		cl.emplace_back (flag1);
+		cl.emplace_back (flag2);
+
+		res.emplace_back (cl);
+		for (auto it = elements.begin(); it != elements.end (); ++it)
+		{
+			cl.clear ();
+			cl.emplace_back (-flag1);
+			cl.emplace_back (*it);
+			res.emplace_back (cl);
+			cl.clear ();
+			cl.emplace_back (-flag2);
+			cl.emplace_back (-(*it));
+			res.emplace_back (cl);
+		}
+		return res;
 	}
 	
 	
@@ -336,6 +384,48 @@ namespace car{
 		        res[i] = -res[i];
 		}
 		return res;
+	}
+
+	void Model::shrink_to_previous_vars (const State *s, Cube& uc, bool& constraint)
+	{
+		Cube tmp;
+		constraint = true;
+		for (int i = 0; i < uc.size (); i ++)
+		{
+		    vector<int> ids = previous (abs (uc[i]));
+			if (ids.empty ())
+			{
+				constraint = false;
+			    continue;
+			}
+			else
+			{
+				int j = 0;
+			    for (; j < ids.size (); j ++)
+				{
+					int id = (uc[i] > 0) ? ids[j] : (-ids[j]);
+					if (std::find (s->s().begin(), s->s().end(), id) != s->s().end())
+					{
+						tmp.push_back (id);
+						break;
+					}
+				}
+			    if (j >= ids.size())
+				{
+					cout << "shrink_to_previous_vars error" << endl;
+					exit (0);
+				} 
+			}
+				
+		}
+		//cout << "shrink_to_previous_vars: " << endl;
+		//cout << "before: ";
+		//car::print (uc);
+		
+		uc = tmp;
+
+		//cout << "after: ";
+		//car::print (uc);
 	}
 	
 	void Model::shrink_to_previous_vars (Cube& uc, bool& constraint)

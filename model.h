@@ -61,9 +61,12 @@ public:
 	inline std::vector<int>& bads () {return bads_;}
 	inline Cube& init () {return init_;}
 	
+	void shrink_to_previous_vars (const State *s, Cube& uc, bool& constraint);
 	void shrink_to_previous_vars (Cube& cu, bool& constraint);
 	void shrink_to_latch_vars (Cube& cu, bool& constraint);
 	void shrink_to_input_vars (Cube& uc);
+
+	std::vector<Clause> create_constraint_from_previous (std::vector<int>& elements);
 	
 	inline int true_id () {return true_;}
 	inline int false_id () {return false_;}

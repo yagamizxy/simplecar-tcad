@@ -4,5 +4,6 @@
 *.ps
 *.aig
 *.aag
+gmon.out
 .vscode
 simplecar

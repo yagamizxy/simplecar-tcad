@@ -554,7 +554,7 @@ namespace car
 		else
 		{
 			bool con;
-		    Cube cu = solver_->get_conflict (bad_,minimal_uc_);
+		    Cube cu = solver_->get_conflict (bad_, minimal_uc_);
 	        if (cu.empty ())
 	        {
 	             report_safe ();
@@ -741,12 +741,6 @@ namespace car
 		return res;
 	}
 	
-	bool Checker::solve_for_recursive (Cube& s, int frame_level, Cube& tmp_block){
-		assert (frame_level != -1);
-		
-		return solver_->solve_with_assumption_for_temporary (s, frame_level, forward_, tmp_block);
-				
-	}
 	
 	State* Checker::get_new_state (const State* s)
 	{
@@ -837,7 +831,7 @@ namespace car
 	void Checker::update_F_sequence (const State* s, const int frame_level)
 	{	
 		bool constraint = false;
-		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
+		Cube cu = solver_->get_conflict (s, forward_, minimal_uc_, constraint);
 		
 		/*
 		Cube dead_uc;
@@ -934,29 +928,13 @@ namespace car
 			
 		for (auto it = s->s().begin(); it != s->s().end(); ++it)
 			assumption.push_back (forward_ ? model_->prime (*it) : (*it));
-		
-		/*
-		Cube common;
-		if (deads_.size() > 0) 
-			common = car::cube_intersect (deads_[deads_.size()-1], s->s());
-		for (auto it = common.begin(); it != common.end(); ++it)
-			assumption.push_back (forward_ ? model_->prime (*it) : (*it));
-		//assumption.insert (assumption.begin (), common.begin (), common.end ());
-		*/
-		
-		
-		/*
-		if (!s->added_to_dead_solver ()){
-			dead_solver_->CARSolver::add_clause_from_cube (s->s());
-			s->set_added_to_dead_solver (true);
-		}
-		*/
 			
 		bool res = dead_solver_->solve_with_assumption (assumption);
 		if (!res){
 			bool constraint = false;
-			dead_uc = dead_solver_->get_conflict (forward_, minimal_uc_, constraint);
+			dead_uc = dead_solver_->get_conflict (s, forward_, minimal_uc_, constraint);
 			//foward dead_cu MUST rule out those not in \@s //TO BE REUSED!
+			/*
 			if (forward_){
 				Cube tmp;
 				Cube &st = s->s();
@@ -977,37 +955,8 @@ namespace car
 					}
 				}
 				dead_uc = tmp;
-				
-				/*
-				//shrink dead_uc
-				while (dead_uc.size() != assumption.size()){
-					assumption.clear ();
-					for (auto it = dead_uc.begin(); it != dead_uc.end(); ++it)
-						assumption.push_back (forward_ ? model_->prime (*it) : (*it));
-						
-					dead_solver_->CARSolver::add_clause_from_cube (dead_uc);
-					
-					res = dead_solver_->solve_with_assumption (assumption);
-					assert (!res);
-					
-					constraint = false;
-					Cube last_dead_uc = dead_uc;
-					dead_uc = dead_solver_->get_conflict (forward_, minimal_uc_, constraint);
-					//foward dead_cu MUST rule out those not in \@s //TO BE REUSED!
-					Cube tmp;
-					Cube &st = last_dead_uc;
-					hash_set<int> tmp_set;
-					for (auto it = st.begin (); it != st.end(); ++it)
-						tmp_set.insert (*it);
-					for (auto it = dead_uc.begin(); it != dead_uc.end(); ++it){
-						if (tmp_set.find (*it) != tmp_set.end())
-							tmp.push_back (*it);
-					}
-
-					dead_uc = tmp;
-				}
-				*/
 			}
+			*/
 			assert (!dead_uc.empty());
 		}
 		else{
@@ -1108,71 +1057,6 @@ namespace car
 		}
 			
 	}
-	
-	
-	Cube Checker::recursive_block (State* s, int frame_level, Cube cu, Cube& next_cu){
-		
-		Cube common = s->s();
-		State *tmp_s = new State (common);
-		
-		while (true){
-			
-			bool res = solve_for_recursive (common, frame_level, common);
-			if (!res){
-				next_cu = get_uc(common);
-				delete tmp_s;
-				return cu;
-			}
-			State* new_state = get_new_state (tmp_s);
-			assert (new_state != NULL);
-			common = car::cube_intersect (common, new_state->s());
-			delete new_state;
-			tmp_s->set_s(common);
-			
-			if (common.empty()){
-				delete tmp_s;
-				return cu;
-			}
-			
-			if (is_initial (common)){
-				delete tmp_s;
-				return cu;
-			}
-			
-			if (solve_with (common, frame_level-1)){
-				delete tmp_s;
-				return cu;
-			}
-			
-			cu = get_uc (common); 
-			
-			
-		}
-		
-	}
-	
-	Cube Checker::get_uc (Cube &c) {
-		bool constraint = false;
-		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
-		    
-		//foward cu MUST rule out those not in \@s
-		Cube tmp;
-		//Cube &st = s->s();
-		for(auto it = cu.begin(); it != cu.end(); ++it){
-			if (car::is_in (*it, c, 0, c.size()-1))
-				tmp.push_back (*it);
-		}
-		cu = tmp;
-			
-		//pay attention to the size of cu!
-		if (cu.empty ())
-		{
-			report_safe ();
-			//return cu;
-		}
-		return cu;
-	}
-
 	
 	void Checker::push_to_frame (Cube& cu, const int frame_level)
 	{
