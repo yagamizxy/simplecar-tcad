@@ -329,7 +329,7 @@ namespace car
     	}
 		//if (verbose_)
 			//cout << endl;
-		if(minimal)
+		if(minimal && (reason.size()<216))
 		{
 			#ifdef __DEBUG__
 				cout << "before MUS: " << reason.size() << endl;
