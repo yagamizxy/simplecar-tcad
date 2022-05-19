@@ -66,7 +66,7 @@ public:
 	void shrink_to_latch_vars (Cube& cu, bool& constraint);
 	void shrink_to_input_vars (Cube& uc);
 
-	std::vector<Clause> create_constraint_from_previous (std::vector<int>& elements);
+	std::vector<Clause> create_constraint_from_previous (std::vector<int>& elements, int init_flag);
 	
 	inline int true_id () {return true_;}
 	inline int false_id () {return false_;}

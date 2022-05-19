@@ -153,17 +153,31 @@ namespace car{
 		if (forward_)
 		{
 			int start = cls_.size();
+			int init_flag = ++max_id_;
+			bool find = false;
 			for (auto it = reverse_next_map_.begin(); it != reverse_next_map_.end (); ++it)
 			{
 				if ((it->second).size() > 1)
 				{
 					//cout << it->first << "===>";
 					//car::print (it->second);
-					vector<Clause> cls = create_constraint_from_previous (it->second);
+					vector<Clause> cls = create_constraint_from_previous (it->second, init_flag);
 					for (int i = 0; i < cls.size(); ++i)
 						cls_.emplace_back (cls[i]);
+					find = true;
 				}
 			
+			}
+			if (find)
+			{
+				//cannot block initial state
+				for (auto it = init_.begin(); it != init_.end(); ++it)
+				{
+					Clause cl;
+					cl.emplace_back (-init_flag);
+					cl.emplace_back (*it);
+					cls_.emplace_back (cl);
+				}
 			}
 			/*
 			cout << "create constraints" << endl;
@@ -225,12 +239,13 @@ namespace car{
 
 	}
 
-	std::vector<Clause> Model::create_constraint_from_previous (std::vector<int>& elements)
+	std::vector<Clause> Model::create_constraint_from_previous (std::vector<int>& elements, int init_flag)
 	{
 		int flag1 = ++max_id_;
 		int flag2 = ++max_id_;
 		vector<Clause> res;
 		Clause cl;
+		cl.emplace_back (init_flag);
 		cl.emplace_back (flag1);
 		cl.emplace_back (flag2);
 
