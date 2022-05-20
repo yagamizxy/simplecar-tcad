@@ -100,6 +100,7 @@ namespace car
 		Model* model_;
 		MainSolver *solver_;
 		MainSolver *lift_, *dead_solver_;
+		bool test_inv (Cube &cu);
 		StartSolver *start_solver_;
 		InvSolver *inv_solver_;
 		Fsequence F_;
@@ -163,7 +164,8 @@ namespace car
 		//propagation
 		bool propagate ();
 		bool propagate (int n);
-		bool propagate (Cube& cu, int n);
+		bool propagate (Cube& cu, int n, Cube& assignment);
+		bool block (Cube& cu, int n);
 		
 		void add_dead_to_inv_solver ();
 				

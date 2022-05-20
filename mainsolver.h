@@ -84,6 +84,7 @@ class MainSolver : public CARSolver
 		Cube get_conflict (const int bad,const bool minimal);
 		Cube get_conflict (const bool forward, const bool minimal, bool& constraint);
 		Cube get_conflict (const State* s, const bool forward, const bool minimal, bool& constraint);
+		Cube get_conflict (const Cube& s, const bool forward, const bool minimal, bool& constraint);
 		
 		void add_new_frame (const Frame& frame, const int frame_level, const bool forward);
 		//overload

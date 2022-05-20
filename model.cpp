@@ -407,7 +407,7 @@ namespace car{
 		return res;
 	}
 
-	void Model::shrink_to_previous_vars (const State *s, Cube& uc, bool& constraint)
+	void Model::shrink_to_previous_vars (const Cube& s, Cube& uc, bool& constraint)
 	{
 		Cube tmp;
 		constraint = true;
@@ -425,7 +425,7 @@ namespace car{
 			    for (; j < ids.size (); j ++)
 				{
 					int id = (uc[i] > 0) ? ids[j] : (-ids[j]);
-					if (std::find (s->s().begin(), s->s().end(), id) != s->s().end())
+					if (std::find (s.begin(), s.end(), id) != s.end())
 					{
 						tmp.push_back (id);
 						break;

@@ -384,22 +384,60 @@ namespace car
 				}
 			}
 			
+<<<<<<< HEAD
 		    if (propagate (cu, n)){
 				FrameElement frame_element = frame.index_of (i);
 				frame_element.set_propagated (false);
 		    	push_to_frame (frame_element, n+1);
 				frame.set_propagated (i, true);
+=======
+			Cube assignment;
+		    if (propagate (cu, n, assignment)){
+		    	push_to_frame (cu, n+1);
+>>>>>>> 2b932795d49d483a0f18c60fbd380fba5d0a3f87
 		    }
 		    else
-		    	flag = false;
+			{
+				if (n < 1)
+					flag = false;
+				else
+				{
+					if (block (assignment, n-1))
+						i--;
+					else
+						flag = false;
+				}
+				
+			}
 		}
 		
 		if (flag)
 			return true;
 		return false;
 	}
+
+	bool Checker::block (Cube& cu, int n)
+	{
+		solver_->set_assumption (cu, n, forward_);
+		//solver_->print_assumption();
+		//solver_->print_clauses();
+	    stats_->count_main_solver_SAT_time_start ();
+		bool res = solver_->propagate_solve_with_assumption ();
+		stats_->count_main_solver_SAT_time_end ();
+		if (!res)
+		{
+			bool constraint;
+			Cube uc = solver_->get_conflict (cu, forward_, minimal_uc_, constraint);
+			//cout << "add additional constraint at frame " << n+1 << ": ";
+			//car::print(uc);
+			push_to_frame (uc, n+1);
+			return true;
+		}
+		
+		return false;
+	}
 	
-	bool Checker::propagate (Cube& cu, int n){
+	bool Checker::propagate (Cube& cu, int n, Cube& assignment){
 		solver_->set_assumption (cu, n, forward_);
 		//solver_->print_assumption();
 		//solver_->print_clauses();
@@ -408,6 +446,11 @@ namespace car
 		stats_->count_main_solver_SAT_time_end ();
 		if (!res)
 			return true;
+		
+		assignment = solver_->get_state (forward_, partial_state_);
+		//st includes both input and latch parts
+		bool constraint;
+		model_->shrink_to_latch_vars(assignment, constraint);
 		return false;
 	}
 	
@@ -893,6 +936,7 @@ namespace car
 				cu = car::vec_merge (cu, s->prefix_for_assumption ());
 			}
 		}
+<<<<<<< HEAD
 		
 		FrameElement frame_element (cu);
 		s->set_prefix_for_assumption (cu);
@@ -901,10 +945,20 @@ namespace car
 			
 		push_to_frame (frame_element, frame_level);
 				
+=======
+
+		push_to_frame (cu, frame_level);
+		
+		
+		if (forward_){
+			for (int i = frame_level-1; i >= 1; --i)
+				push_to_frame (cu, i);
+		}
+>>>>>>> 2b932795d49d483a0f18c60fbd380fba5d0a3f87
 		stats_->count_update_F_time_end ();
 		
 	}
-	
+
 	bool Checker::is_dead (const State* s, Cube& dead_uc){
 	
 		Cube assumption;
