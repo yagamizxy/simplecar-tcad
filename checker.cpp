@@ -384,17 +384,11 @@ namespace car
 				}
 			}
 			
-<<<<<<< HEAD
 		    if (propagate (cu, n)){
 				FrameElement frame_element = frame.index_of (i);
 				frame_element.set_propagated (false);
 		    	push_to_frame (frame_element, n+1);
 				frame.set_propagated (i, true);
-=======
-			Cube assignment;
-		    if (propagate (cu, n, assignment)){
-		    	push_to_frame (cu, n+1);
->>>>>>> 2b932795d49d483a0f18c60fbd380fba5d0a3f87
 		    }
 		    else
 			{
@@ -936,7 +930,6 @@ namespace car
 				cu = car::vec_merge (cu, s->prefix_for_assumption ());
 			}
 		}
-<<<<<<< HEAD
 		
 		FrameElement frame_element (cu);
 		s->set_prefix_for_assumption (cu);
@@ -945,16 +938,6 @@ namespace car
 			
 		push_to_frame (frame_element, frame_level);
 				
-=======
-
-		push_to_frame (cu, frame_level);
-		
-		
-		if (forward_){
-			for (int i = frame_level-1; i >= 1; --i)
-				push_to_frame (cu, i);
-		}
->>>>>>> 2b932795d49d483a0f18c60fbd380fba5d0a3f87
 		stats_->count_update_F_time_end ();
 		
 	}
