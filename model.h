@@ -61,7 +61,7 @@ public:
 	inline std::vector<int>& bads () {return bads_;}
 	inline Cube& init () {return init_;}
 	
-	void shrink_to_previous_vars (const State *s, Cube& uc, bool& constraint);
+	void shrink_to_previous_vars (const Cube& s, Cube& uc, bool& constraint);
 	void shrink_to_previous_vars (Cube& cu, bool& constraint);
 	void shrink_to_latch_vars (Cube& cu, bool& constraint);
 	void shrink_to_input_vars (Cube& uc);

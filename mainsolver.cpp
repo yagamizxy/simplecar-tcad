@@ -105,8 +105,13 @@ namespace car
 		std::sort (res.begin (), res.end (), car::comp);
 		return res;
 	}
-	
+
 	Cube MainSolver::get_conflict (const State* s, const bool forward, const bool minimal, bool& constraint)
+	{
+		return get_conflict (s->s(), forward, minimal, constraint);
+	}
+	
+	Cube MainSolver::get_conflict (const Cube& cu, const bool forward, const bool minimal, bool& constraint)
 	{
 		Cube conflict = get_uc (minimal);
 		
@@ -119,7 +124,7 @@ namespace car
 		
 			
 		if (forward)
-		    model_->shrink_to_previous_vars (s, conflict, constraint);
+		    model_->shrink_to_previous_vars (cu, conflict, constraint);
 		else
 		    model_ -> shrink_to_latch_vars (conflict, constraint);
 		
