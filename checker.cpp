@@ -391,18 +391,7 @@ namespace car
 				frame.set_propagated (i, true);
 		    }
 		    else
-			{
-				if (n < 1)
-					flag = false;
-				else
-				{
-					if (block (assignment, n-1))
-						i--;
-					else
-						flag = false;
-				}
-				
-			}
+				flag = false;
 		}
 		
 		if (flag)
@@ -410,28 +399,7 @@ namespace car
 		return false;
 	}
 
-	bool Checker::block (Cube& cu, int n)
-	{
-		solver_->set_assumption (cu, n, forward_);
-		//solver_->print_assumption();
-		//solver_->print_clauses();
-	    stats_->count_main_solver_SAT_time_start ();
-		bool res = solver_->propagate_solve_with_assumption ();
-		stats_->count_main_solver_SAT_time_end ();
-		if (!res)
-		{
-			bool constraint;
-			Cube uc = solver_->get_conflict (cu, forward_, minimal_uc_, constraint);
-			//cout << "add additional constraint at frame " << n+1 << ": ";
-			//car::print(uc);
-			push_to_frame (uc, n+1);
-			return true;
-		}
-		
-		return false;
-	}
-	
-	bool Checker::propagate (Cube& cu, int n, Cube& assignment){
+	bool Checker::propagate (Cube& cu, int n){
 		solver_->set_assumption (cu, n, forward_);
 		//solver_->print_assumption();
 		//solver_->print_clauses();
@@ -440,11 +408,6 @@ namespace car
 		stats_->count_main_solver_SAT_time_end ();
 		if (!res)
 			return true;
-		
-		assignment = solver_->get_state (forward_, partial_state_);
-		//st includes both input and latch parts
-		bool constraint;
-		model_->shrink_to_latch_vars(assignment, constraint);
 		return false;
 	}
 	

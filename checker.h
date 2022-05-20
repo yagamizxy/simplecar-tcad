@@ -164,7 +164,7 @@ namespace car
 		//propagation
 		bool propagate ();
 		bool propagate (int n);
-		bool propagate (Cube& cu, int n, Cube& assignment);
+		bool propagate (Cube& cu, int n);
 		bool block (Cube& cu, int n);
 		
 		void add_dead_to_inv_solver ();
