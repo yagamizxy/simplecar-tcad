@@ -376,13 +376,16 @@ namespace car
 				continue;
 			Cube& cu = frame[i];
 
-			for (int j = 0; j < next_frame.size(); ++j){
+			int j = 0;
+			for (; j < next_frame.size(); ++j){
 				if (car::imply (cu, next_frame[j]) )
 				{
 					frame.set_propagated (i, true);
 					break;
 				}
 			}
+			if (j < next_frame.size()) 
+				continue;
 			
 		    if (propagate (cu, n)){
 				FrameElement frame_element = frame.index_of (i);
@@ -890,7 +893,17 @@ namespace car
 			}
 			if (i < 0)//not found
 			{
+				//cout << "merge " << endl;
+				//car::print (cu);
+				//car::print (s->prefix_for_assumption ());
 				cu = car::vec_merge (cu, s->prefix_for_assumption ());
+				/*
+				if (cu.empty ())
+				{
+					cout << "break here" << endl;
+					exit (0);
+				}
+				*/
 			}
 		}
 		

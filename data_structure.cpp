@@ -28,10 +28,24 @@
  #include "data_structure.h"
  #include <string.h>
  #include <assert.h>
+ #include <sstream>
  using namespace std;
  
  namespace car
  {
+	std::string FrameElement::to_string ()
+	{
+		std::ostringstream os;
+   		os << *this;
+   		return os.str();
+	}
+	std::string Frame::to_string ()
+	{
+		string res = "";
+		for (auto element : cubes_)
+			res += element.to_string ();
+		return res;
+	}
 	std::ostream& operator <<(std::ostream& os, const FrameElement& element)
 	{
 		for (auto id : element.cube())

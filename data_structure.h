@@ -50,6 +50,7 @@
 		inline std::vector<State*>& states() {return states_;}
 		inline void set_propagated (bool val) {propagated_ = val;}
 		inline void add_state (State* s) {states_.push_back (s);}
+		std::string to_string ();
 
 		friend std::ostream& operator <<(std::ostream& os, const FrameElement& element);
 
@@ -79,6 +80,8 @@
 			FrameElement element (cu);
 			cubes_.push_back (element);
 		}
+
+		std::string to_string ();
 
 		inline std::vector<State*>& get_states (int index) {return cubes_[index].states ();}
 
