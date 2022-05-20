@@ -134,13 +134,15 @@ namespace car
 		void inv_solver_add_constraint_and (const int frame_level);
 		void inv_solver_release_constraint_and ();
 		bool solve_with (const Cube &cu, const int frame_level);
+		bool solve_with (State* s, const int frame_level);
+		bool solver_solve_with_assumption (State* s, const int frame_level, bool forward);
 		State* get_new_state (const State *s);
 		void extend_F_sequence ();
 		void update_F_sequence (const State* s, const int frame_level);
 		void update_frame_by_relative (const State* s, const int frame_level);
 		void update_B_sequence (State* s);
 		int get_new_level (const State *s, const int frame_level);
-		void push_to_frame (Cube& cu, const int frame_level);
+		void push_to_frame (FrameElement& element, const int frame_level);
 		bool tried_before (const State* s, const int frame_level);
 		
 		
@@ -285,7 +287,7 @@ namespace car
 	    inline void clear_frame (){
 	        frame_.clear ();
 	        cube_.clear ();
-		comm_.clear ();
+			comm_.clear ();
 	        for (int i = 0; i < frame_.size (); i ++)
 	        	start_solver_->add_clause_with_flag (frame_[i]);
 	    }

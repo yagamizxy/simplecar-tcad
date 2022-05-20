@@ -24,6 +24,7 @@
 #include "utility.h"
 #include <vector>
 #include <algorithm>
+#include <assert.h>
 using namespace std;
 
 namespace car {
@@ -139,6 +140,36 @@ std::vector<int> vec_intersect (const std::vector<int>& v1, const std::vector<in
     }
     return res;
 
+}
+
+std::vector<int> vec_merge (const std::vector<int>& v1, const std::vector<int>& v2)
+{//\@v1 and \@v2 must be in order!!
+    std::vector<int> res;
+	std::vector<int>::const_iterator first1 = v1.begin (), first2 = v2.begin (), last1 = v1.end (), last2 = v2.end ();
+    while (first2 != last2) 
+    {
+    	if (first1 == last1)
+    		break;
+    	if (comp (*first1, *first2))
+        {
+            res.emplace_back (*first1);
+            first1 ++;
+        }
+    	else if ((*first1) == (*first2))
+    	{
+    		res.emplace_back (*first1);
+    		first1 ++;
+    		first2 ++;
+    	}
+    	else
+        {
+            assert (-(*first1) != (*first2));
+            res.emplace_back (*first2);
+            first2 ++;
+        }
+    	    
+    }
+    return res;
 }
 
 bool is_in (const int id, const std::vector<int>& v, const int begin, const int end){

@@ -98,6 +98,7 @@ namespace car
 		    	cout << F_[i].size () << " ";
 		    }
 		    cout << endl;
+			//cout << F_;
 		    //end of print
 		    
 		    //handle the special start states
@@ -263,7 +264,8 @@ namespace car
 		else
 		{
 		 	  
-		    while (solve_with (const_cast<State*>(s)->s (), frame_level))
+		    //while (solve_with (const_cast<State*>(s)->s (), frame_level))
+			while (solve_with (s, frame_level))
 		    {
 			    State* new_state = get_new_state (s);
 			    assert (new_state != NULL);
@@ -370,21 +372,23 @@ namespace car
 		
 		bool flag = true;
 		for (int i = 0; i < frame.size (); ++i){
+			if (frame.propagated(i))
+				continue;
 			Cube& cu = frame[i];
-			
-			
-			bool propagated = false;
+
 			for (int j = 0; j < next_frame.size(); ++j){
-				if (car::imply (cu, next_frame[j]) && car::imply (next_frame[j], cu)){
-					propagated = true;
+				if (car::imply (cu, next_frame[j]) )
+				{
+					frame.set_propagated (i, true);
 					break;
 				}
 			}
-			if (propagated) continue;
 			
-	
 		    if (propagate (cu, n)){
-		    	push_to_frame (cu, n+1);
+				FrameElement frame_element = frame.index_of (i);
+				frame_element.set_propagated (false);
+		    	push_to_frame (frame_element, n+1);
+				frame.set_propagated (i, true);
 		    }
 		    else
 		    	flag = false;
@@ -731,6 +735,39 @@ namespace car
 		inv_solver_->release_constraint_and ();
 	}
 	
+	bool Checker::solve_with (State* s, const int frame_level)
+	{
+		if (frame_level == -1)
+			return immediate_satisfiable (s->s());
+				
+		bool res = solver_solve_with_assumption (s, frame_level, forward_);
+		
+		return res;
+	}
+
+	bool Checker::solver_solve_with_assumption (State* s, const int frame_level, bool forward){
+	    Assignment st2 = s->prefix_for_assumption (); 
+		for (auto it = s->s().begin(); it != s->s().end(); ++it)
+			st2.emplace_back (*it);
+	    //add_intersection_last_uc_in_frame_level_plus_one (st2, frame_level);
+	    solver_->set_assumption (st2, frame_level, forward);
+	    stats_->count_main_solver_SAT_time_start ();
+		bool res = solver_->solve_with_assumption ();
+		stats_->count_main_solver_SAT_time_end ();
+		if (!res) {
+		    Assignment st3; 
+		    st3.reserve (model_->num_latches());
+		    for (int i = st2.size ()-model_->num_latches(); i < st2.size (); ++ i)
+		    	st3.push_back (st2[i]);
+		    if (frame_level+1 < cubes_.size ()) 
+		        cubes_[frame_level+1] = st3;
+		    else
+		        cube_ = st3;
+		}
+		 return res;
+	}
+	    
+
 	bool Checker::solve_with (const Cube& s, const int frame_level)
 	{
 		if (frame_level == -1)
@@ -832,85 +869,38 @@ namespace car
 	{	
 		bool constraint = false;
 		Cube cu = solver_->get_conflict (s, forward_, minimal_uc_, constraint);
-		
-		/*
-		Cube dead_uc;
-		if (is_dead (s, dead_uc)){
-			//cout << "dead: " << endl;
-			//car::print (dead_uc);
-			add_dead_to_solvers (dead_uc);
-			//if (car::imply (cu, dead_uc))
-				return;
-		}
-		*/
-		
-		stats_->count_update_F_time_start ();
-		
-		
-		//foward cu MUST rule out those not in \@s
-		if (forward_){
-			Cube tmp;
-			Cube &st = s->s();
-			if (!partial_state_){
-				for(auto it = cu.begin(); it != cu.end(); ++it){
-					int latch_start = model_->num_inputs()+1;
-					if (st[abs(*it)-latch_start] == *it)
-						tmp.push_back (*it);
-				}
-			}
-			else{
-				hash_set<int> tmp_set;
-				for (auto it = st.begin (); it != st.end(); ++it)
-					tmp_set.insert (*it);
-				for (auto it = cu.begin(); it != cu.end(); ++it){
-					if (tmp_set.find (*it) != tmp_set.end())
-						tmp.push_back (*it);
-				}
-			}
-			cu = tmp;
-		}
-		
-		//assert (!cu.empty());
-		
 		if(cu.empty()){
 			report_safe ();
 		}
-		
-		/*
-		if (frame_level <= F_.size()){
-			Cube next_cu;
-			cu = recursive_block (s, frame_level, cu, next_cu);
-		}
-		*/
 		
 		//pay attention to the size of cu!
 		if (safe_reported ())
 		{
 			return;
 		}
-		
-		
-		if (forward_){
-			if (is_initial (cu)){
-				auto it = s->s().begin();
-				while ((*it) < 0) ++it;
-				assert (it != s->s().end());
-				int i = 0;
-				for (; i < cu.size(); ++i)
-					if (abs(cu[i]) > abs(*it))
-						break;
-				cu.insert (cu.begin()+i, *it);
+
+		//make \@cu incremental
+		if (car::imply (cu, s->prefix_for_assumption ()) && (frame_level > 1))
+		{
+			int i = F_[frame_level-1].size()-1;
+			for (; i >= 0; i--)
+			{
+				if (car::imply (cu, F_[frame_level-1][i]))
+					break;
+			}
+			if (i < 0)//not found
+			{
+				cu = car::vec_merge (cu, s->prefix_for_assumption ());
 			}
 		}
 		
-		
-		push_to_frame (cu, frame_level);
-		
-		
-		if (forward_){
-			for (int i = frame_level-1; i >= 1; --i)
-				push_to_frame (cu, i);
-		}
+		FrameElement frame_element (cu);
+		s->set_prefix_for_assumption (cu);
+		frame_element.add_state (s);
+		stats_->count_update_F_time_start ();
+			
+		push_to_frame (frame_element, frame_level);
+				
 		stats_->count_update_F_time_end ();
 		
 	}
@@ -1058,9 +1048,9 @@ namespace car
 			
 	}
 	
-	void Checker::push_to_frame (Cube& cu, const int frame_level)
+	void Checker::push_to_frame (FrameElement& frame_element, const int frame_level)
 	{
-		
+		Cube& cu = frame_element.cube ();
 		Frame& frame = (frame_level < int (F_.size ())) ? F_[frame_level] : frame_;
 		
 				
@@ -1071,19 +1061,25 @@ namespace car
 		stats_->count_clause_contain_time_start ();
 		for (int i = 0; i < frame.size (); i ++)
 		{   
-			if (forward_){//for incremental
-				if (imply (cu, frame[i]))
-					return;
+			if (imply (cu, frame[i]))
+			{
+				return;
 			}
-			if (!imply (frame[i], cu))
-				tmp_frame.push_back (frame[i]);	
-			else {
-				
-			    stats_->count_clause_contain_success ();
+			else if (imply (frame[i], cu))
+			{
+				vector<State*> states = frame.get_states (i);
+				for (auto s: states)
+				{
+					s->set_prefix_for_assumption (cu);
+					frame_element.add_state (s);
+				}
+				stats_->count_clause_contain_success ();
 			}
+			else
+				tmp_frame.push_back (frame[i]);
 		} 
 		stats_->count_clause_contain_time_end ();
-		tmp_frame.push_back (cu);
+		tmp_frame.emplace_back (frame_element);
 		/*
 		//update comm
 		Cube& comm = (frame_level < int (comms_.size ())) ? comms_[frame_level] : comm_;
@@ -1107,11 +1103,14 @@ namespace car
 	
 	int Checker::get_new_level (const State *s, const int frame_level){
 	    for (int i = 0; i < frame_level; i ++){
-	        int j = 0;
-	        for (; j < F_[i].size (); j ++){
+	        int j = F_[i].size()-1;
+	        for (; j >= 0; j --){
 	        	bool res = partial_state_ ? car::imply (s->s(), F_[i][j]) : s->imply (F_[i][j]);
 	            if (res)
-	                break;
+				{
+					s->set_prefix_for_assumption (F_[i][j]);
+					break;
+				}
 	        }
 	        if (j >= F_[i].size ())
 	            return i-1;

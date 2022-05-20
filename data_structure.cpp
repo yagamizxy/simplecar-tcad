@@ -32,6 +32,33 @@
  
  namespace car
  {
+	std::ostream& operator <<(std::ostream& os, const FrameElement& element)
+	{
+		for (auto id : element.cube())
+			os << id << " ";
+		os << std::endl;
+		return os;
+	}
+	std::ostream& operator <<(std::ostream& os, const Frame& frame)
+	{
+		for (auto frame_element : frame.cubes())
+			os << frame_element;
+		return os;
+	}
+	std::ostream& operator <<(std::ostream& os, const Fsequence& F)
+	{
+		for (int i = 1; i < F.size(); ++i)
+			os << "Frame " << i << ":" << std::endl << F[i];
+		return os;
+	}
+
+	std::ostream& operator <<(std::ostream& os, const State& s)
+	{
+		for (auto id : s.s())
+			os << id << " ";
+		os << std::endl;
+		return os;
+	}
  
     State::State (const State *s, const Assignment& inputs, const Assignment& latches, const bool forward, const bool last) 
  	{

@@ -34,8 +34,80 @@
  	typedef std::vector<int> Assignment;
  	typedef std::vector<int> Cube;
  	typedef std::vector<int> Clause;
- 	typedef std::vector<Cube> Frame;
- 	typedef std::vector<Frame> Fsequence;
+ 	//typedef std::vector<Cube> Frame;
+	 //typedef std::vector<Frame> Fsequence;
+	//frame and O-sequence 
+	class State;
+	class FrameElement
+	{
+	public:
+		FrameElement (const Cube& cu) : cu_ (cu), propagated_ (false) {}
+		~FrameElement (){}
+		inline int size() {return cu_.size ();}
+		inline Cube& cube () {return cu_;}
+		inline int& operator [](int index) {return cu_[index];}
+		inline bool propagated () {return propagated_;}
+		inline std::vector<State*>& states() {return states_;}
+		inline void set_propagated (bool val) {propagated_ = val;}
+		inline void add_state (State* s) {states_.push_back (s);}
+
+		friend std::ostream& operator <<(std::ostream& os, const FrameElement& element);
+
+	private:
+		Cube cu_;
+		std::vector<State*> states_; //all states using current frame as the prefix for assumption
+		bool propagated_;   //flag to whether the current frame is propagated to next level
+	};
+
+	class Frame
+	{
+	public:
+		Frame () {}
+		~Frame (){}
+		inline int size () {return cubes_.size();}
+		inline void clear () {cubes_.clear ();}
+		inline std::vector<FrameElement>& cubes () {return cubes_;}
+		inline bool empty () {return cubes_.empty ();}
+		inline bool propagated (const int index) {return cubes_[index].propagated ();}
+		inline void set_propagated (const int index, bool val) {cubes_[index].set_propagated (val);}
+		inline Cube& operator [](int index) {return cubes_[index].cube();}
+		inline FrameElement& index_of (int index) {return cubes_[index];}
+		inline void push_back (FrameElement& element) {cubes_.push_back (element);}
+		inline void emplace_back (FrameElement& element) {cubes_.emplace_back (element);}
+		inline void push_back (Cube& cu) 
+		{
+			FrameElement element (cu);
+			cubes_.push_back (element);
+		}
+
+		inline std::vector<State*>& get_states (int index) {return cubes_[index].states ();}
+
+		friend std::ostream& operator <<(std::ostream& os, const Frame& frame);
+
+	private:
+		std::vector<FrameElement> cubes_;
+	};
+	class Fsequence
+	{
+	public:
+		Fsequence (){}
+		~Fsequence (){}
+		inline int size () {return frames_.size();}
+		inline void clear () {frames_.clear ();}
+		inline std::vector<Frame>& frames () {return frames_;}
+		inline Frame& operator [](int index) {return frames_[index];}
+		inline bool empty () {return frames_.empty ();}
+		inline void push_back (Frame& frame) {frames_.push_back (frame);}
+		inline void pop_back () {frames_.pop_back ();}
+
+		friend std::ostream& operator <<(std::ostream& os, const Fsequence& F);
+		
+	private:
+		std::vector<Frame> frames_;
+	};
+ 	
+
+
  	
  	//state 
  	class State 
@@ -98,13 +170,19 @@
  		inline bool is_dead () {return dead_;}
  		inline void set_added_to_dead_solver (bool val) {added_to_dead_solver_ = val;}
  		inline bool added_to_dead_solver () {return added_to_dead_solver_;}
- 	private:
+		inline std::vector<int>& prefix_for_assumption () {return prefix_for_assumption_;}
+		inline void set_prefix_for_assumption (std::vector<int>& prefix) {prefix_for_assumption_ = prefix;}
+ 	
+	 	friend std::ostream& operator <<(std::ostream& os, const State& s);
+	 private:
  	//s_ contains all latches, but if the value of latch l is not cared, assign it to -1.
  		Assignment s_;
  		State* next_;
  		State* pre_;
  		std::vector<int> inputs_;
  		std::vector<int> last_inputs_; // for backward CAR only!
+
+		std::vector<int> prefix_for_assumption_;   //prefix for setting assumptions
  		
  		bool init_;  //whether it is an initial state
  		bool final_; //whether it is an final state
