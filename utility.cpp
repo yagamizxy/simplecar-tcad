@@ -173,6 +173,10 @@ std::vector<int> vec_merge (const std::vector<int>& v1, const std::vector<int>& 
         }
     	    
     }
+    if (first1 != last1)
+        res.insert (res.end(), first1, last1);
+    else if (first2 != last2)
+        res.insert (res.end (), first2, last2);
     return res;
 }
 

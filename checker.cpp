@@ -893,10 +893,12 @@ namespace car
 			}
 			if (i < 0)//not found
 			{
-				//cout << "merge " << endl;
+				//cout << "before merge " << endl;
 				//car::print (cu);
 				//car::print (s->prefix_for_assumption ());
 				cu = car::vec_merge (cu, s->prefix_for_assumption ());
+				//cout << "after merge " << endl;
+				//car::print (cu);
 				/*
 				if (cu.empty ())
 				{
