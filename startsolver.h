@@ -71,6 +71,8 @@ namespace car {
             }
             assumption_pop ();
             assumption_push (-flag_);
+            //add_clause (-flag_);
+            simplify ();
             assumption_push (++flag_);
         }
         inline void add_clause_with_flag (const Cube& cu)

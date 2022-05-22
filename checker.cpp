@@ -103,12 +103,14 @@ namespace car
 		    
 		    //handle the special start states
 			reset_start_solver ();
+			
 			if (!propagate_)
 		    	clear_frame ();
 			minimal_update_level_ = F_.size () - 1;
 			if (try_satisfy (frame_level)){
 				if (verbose_)
 					cout << "return SAT from try_satisfy at frame level " << frame_level << endl;
+				//cout << F_;
 				return true;
 			}
 			//it is true when some reason returned from Main solver is empty
@@ -164,7 +166,15 @@ namespace car
 		std::cout<<"--------------"<<std::endl;
 		std::cout<<"pick a start state: "<<s<<std::endl;
 	#endif
-		
+			/*
+			if ((forward_ && F_.size() > 2) || (!forward_ && F_.size() > 1))
+			{
+				cout << "frame_level: " << frame_level << endl;
+				set_state_prefix_for_assumption (s, F_[F_.size()-2]);
+			}
+			*/
+			int new_level = get_new_level (s, F_.size());
+			
 		    if (!forward_) //for dot drawing
 			    s->set_initial (true);
 			
@@ -175,7 +185,7 @@ namespace car
 			
 			s->set_depth (0);
 		    update_B_sequence (s);
-			if (try_satisfy_by (frame_level, s))
+			if (try_satisfy_by (new_level, s))
 			    return true;
 			if (safe_reported ())
 				return false;
@@ -183,6 +193,45 @@ namespace car
 		}
 	
 		return false;
+	}
+
+	void Checker::set_state_prefix_for_assumption (State* s, Frame& frame)
+	{
+		int i = frame.size()-1;
+		for (; i >=0 ; --i)
+		{
+			if (car::imply (s->s(), frame[i]))
+			{
+				s->set_prefix_for_assumption (frame[i]);
+				break;
+			}
+		}
+		if (i < 0) //not found
+		{
+			int j = deads_.size()-1;
+			for (; j >=0 ; --j)
+			{
+				if (car::imply (s->s(), deads_[j]))
+				{
+					s->set_prefix_for_assumption (deads_[j]);
+					break;
+				}
+			}
+			if (j >= 0)
+			{
+				cout << "set_state_prefix_for_assumption: find the prefix in deads" << endl;
+				car::print (s->s());
+				exit (0);
+			}
+			else //not found in dead states either
+			{
+				cout << "set_state_prefix_for_assumption: something is wrong, cannot find the prefix" << endl;
+				car::print (s->s());
+				cout << F_;
+				exit (0);
+			}
+			
+		}
 	}
 	
 	/*Main function to do state search in CAR
@@ -242,6 +291,12 @@ namespace car
 		std::cout<<"try state framelevel pair : "<<s<<" , "<<frame_level<<std::endl;
 	#endif
 		stats_->count_try_before_time_start ();
+		if (s->prefix_for_assumption().size() == 1 && frame_level == 2)
+		{
+			if (s->prefix_for_assumption()[0] == 286)
+				cout << "break here" << endl;
+
+		}
 		if (tried_before (s, frame_level+1)){
 
 	#ifdef __DEBUG__
@@ -602,8 +657,12 @@ namespace car
 		Assignment st = start_solver_->get_model ();
 		assert (st.size() >= model_->num_inputs() + model_->num_latches());
 		st.resize (model_->num_inputs() + model_->num_latches());
+		//cout << "before partial" << endl;
+		//car::print (st);
 		if (partial_state_)
 			get_partial (st);
+		//cout << "after partial" << endl;
+		//car::print (st);
 		std::pair<Assignment, Assignment> pa = state_pair (st);
 		State *res = new State (NULL, pa.first, pa.second, forward_, true);
 		return res;
@@ -825,7 +884,9 @@ namespace car
 			}
 			
 		///?????????????????
-			lift_->add_clause (-flag);	
+			//lift_->add_clause (-flag);	
+			lift_->add_clause (flag);
+			lift_->simplify ();
 			//lift_->print_clauses ();
 		}
 		else{
@@ -871,7 +932,7 @@ namespace car
 	void Checker::update_F_sequence (const State* s, const int frame_level)
 	{	
 		bool constraint = false;
-		Cube cu = solver_->get_conflict (s, forward_, minimal_uc_, constraint);
+		Cube cu = solver_->get_conflict (s, forward_, minimal_uc_, s->prefix_for_assumption (), constraint);
 		if(cu.empty()){
 			report_safe ();
 		}
@@ -882,10 +943,12 @@ namespace car
 			return;
 		}
 
+		/*
 		//make \@cu incremental
-		if (car::imply (cu, s->prefix_for_assumption ()) && (frame_level > 1))
+		if (frame_level > 1)
 		{
 			int i = F_[frame_level-1].size()-1;
+			//int find_prefix = false;
 			for (; i >= 0; i--)
 			{
 				if (car::imply (cu, F_[frame_level-1][i]))
@@ -893,25 +956,19 @@ namespace car
 			}
 			if (i < 0)//not found
 			{
-				//cout << "before merge " << endl;
-				//car::print (cu);
-				//car::print (s->prefix_for_assumption ());
-				cu = car::vec_merge (cu, s->prefix_for_assumption ());
-				//cout << "after merge " << endl;
-				//car::print (cu);
-				/*
-				if (cu.empty ())
-				{
-					cout << "break here" << endl;
-					exit (0);
-				}
-				*/
+				cout << "before merge " << endl;
+				car::print (cu);
+				car::print (s->prefix_for_assumption ());
+				Cube tmp_cu = car::vec_merge (cu, s->prefix_for_assumption ());
+				//if (tmp_cu.size () != s->prefix_for_assumption().size())// \@s does not imply \@cu
+				//	cu = tmp_cu;
+				cout << "after merge " << endl;
+				car::print (cu);
 			}
 		}
-		
+		*/
 		FrameElement frame_element (cu);
 		s->set_prefix_for_assumption (cu);
-		frame_element.add_state (s);
 		stats_->count_update_F_time_start ();
 			
 		push_to_frame (frame_element, frame_level);
@@ -937,7 +994,8 @@ namespace car
 		bool res = dead_solver_->solve_with_assumption (assumption);
 		if (!res){
 			bool constraint = false;
-			dead_uc = dead_solver_->get_conflict (s, forward_, minimal_uc_, constraint);
+			Cube refer;
+			dead_uc = dead_solver_->get_conflict (s, forward_, minimal_uc_, refer, constraint);
 			//foward dead_cu MUST rule out those not in \@s //TO BE REUSED!
 			/*
 			if (forward_){
@@ -1082,12 +1140,6 @@ namespace car
 			}
 			else if (imply (frame[i], cu))
 			{
-				vector<State*> states = frame.get_states (i);
-				for (auto s: states)
-				{
-					s->set_prefix_for_assumption (cu);
-					frame_element.add_state (s);
-				}
 				stats_->count_clause_contain_success ();
 			}
 			else
@@ -1111,7 +1163,9 @@ namespace car
 		
 		if (frame_level < int (F_.size ()))
 			solver_->add_clause_from_cube (cu, frame_level, forward_);
-		else if (frame_level == int (F_.size ()))
+		if (frame_level == int (F_.size ()) && F_.size() == 1)
+			start_solver_->add_clause_with_flag (cu);
+		else if (frame_level == int (F_.size ()-1) && F_.size() > 1)
 			start_solver_->add_clause_with_flag (cu);
 	}
 	
@@ -1127,7 +1181,7 @@ namespace car
 					break;
 				}
 	        }
-	        if (j >= F_[i].size ())
+	        if (j < 0)
 	            return i-1;
 	    }
 		return frame_level - 1;
@@ -1154,9 +1208,10 @@ namespace car
 	    	assert (const_cast<State*>(st)->size () == model_->num_latches ());
 	    
 	    	stats_->count_state_contain_time_start ();
-	    	for (int i = 0; i < frame.size (); i ++) {
+	    	for (int i = frame.size()-1; i >= 0; i --) {
 	        	if (st->imply (frame[i])) {
 	            	stats_->count_state_contain_time_end ();
+					st->set_prefix_for_assumption (frame[i]);
 	            	return true;
 	        	} 
 	    	}
@@ -1164,9 +1219,10 @@ namespace car
 	    }
 	    else{
 	    	stats_->count_state_contain_time_start ();
-	    	for (int i = 0; i < frame.size (); i ++) {
+	    	for (int i = frame.size()-1; i >= 0; i --) {
 	        	if (car::imply (st->s(), frame[i])) {
 	            	stats_->count_state_contain_time_end ();
+					st->set_prefix_for_assumption (frame[i]);
 	            	return true;
 	        	} 
 	    	}

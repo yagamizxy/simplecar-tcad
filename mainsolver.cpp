@@ -106,14 +106,20 @@ namespace car
 		return res;
 	}
 
-	Cube MainSolver::get_conflict (const State* s, const bool forward, const bool minimal, bool& constraint)
+	Cube MainSolver::get_conflict (const State* s, const bool forward, const bool minimal, const Cube& refer, bool& constraint)
 	{
-		return get_conflict (s->s(), forward, minimal, constraint);
+		return get_conflict (s->s(), forward, minimal, refer, constraint);
 	}
 	
-	Cube MainSolver::get_conflict (const Cube& cu, const bool forward, const bool minimal, bool& constraint)
+	Cube MainSolver::get_conflict (const Cube& cu, const bool forward, const bool minimal, const Cube& refer, bool& constraint)
 	{
-		Cube conflict = get_uc (minimal);
+		Cube tmp_refer = refer;
+		if (forward)
+		{
+			for (vector<int>::iterator it = tmp_refer.begin(); it != tmp_refer.end(); ++it)
+				*it = model_->prime (*it);
+		}
+		Cube conflict = get_uc (minimal, tmp_refer);
 		
 		if (minimal)
 		{

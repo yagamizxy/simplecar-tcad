@@ -69,11 +69,13 @@ namespace car
 		//functions
 		bool solve_assumption (int SAT_type);
 		std::vector<int> get_model ();    //get the model from SAT solver
- 		std::vector<int> get_uc (bool minimal);       //get UC from SAT solver
+		std::vector<int> get_uc (bool minimal);       //get UC from SAT solver
+ 		std::vector<int> get_uc (bool minimal, const std::vector<int>& refer);       //get UC from SAT solver
 		//zhang xiaoyu code begins
 		void update_assumption(std::vector<int> new_reason);
 		std::vector<int> get_solver_uc();  //get UC from sat solver 
-	    std::vector<int> get_mus(std::vector<int> mus_reason);
+	    std::vector<int> get_mus(std::vector<int> mus_reason, const std::vector<int>& refer);
+		bool is_mus_element (const int id, const std::vector<int>& mus_reason, const std::vector<int>& refer);
 		//void get_mus (std::vector<std::vector<int> >& muses, std::vector<int>& res);
         //bool SAT (std::vector<int>& mus, std::vector<std::vector<int> >& muses);
 		//void remove_from (std::vector<std::vector<int> >& muses, std::vector<int>& uc);
