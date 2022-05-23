@@ -291,12 +291,7 @@ namespace car
 		std::cout<<"try state framelevel pair : "<<s<<" , "<<frame_level<<std::endl;
 	#endif
 		stats_->count_try_before_time_start ();
-		if (s->prefix_for_assumption().size() == 1 && frame_level == 2)
-		{
-			if (s->prefix_for_assumption()[0] == 286)
-				cout << "break here" << endl;
 
-		}
 		if (tried_before (s, frame_level+1)){
 
 	#ifdef __DEBUG__
@@ -884,9 +879,9 @@ namespace car
 			}
 			
 		///?????????????????
-			//lift_->add_clause (-flag);	
-			lift_->add_clause (flag);
-			lift_->simplify ();
+			lift_->add_clause (-flag);	
+			//lift_->add_clause (flag);
+			//lift_->simplify ();
 			//lift_->print_clauses ();
 		}
 		else{
@@ -1023,10 +1018,12 @@ namespace car
 			assert (!dead_uc.empty());
 		}
 		else{
+			
 			if (!s->added_to_dead_solver ()){
 				dead_solver_->CARSolver::add_clause_from_cube (s->s());
 				s->set_added_to_dead_solver (true);
 			}
+			
 		}
 		return !res;
 	}
@@ -1163,28 +1160,26 @@ namespace car
 		
 		if (frame_level < int (F_.size ()))
 			solver_->add_clause_from_cube (cu, frame_level, forward_);
-		if (frame_level == int (F_.size ()) && F_.size() == 1)
+		if (frame_level == int (F_.size ()))
 			start_solver_->add_clause_with_flag (cu);
-		else if (frame_level == int (F_.size ()-1) && F_.size() > 1)
-			start_solver_->add_clause_with_flag (cu);
+			
 	}
 	
 	
 	int Checker::get_new_level (const State *s, const int frame_level){
-	    for (int i = 0; i < frame_level; i ++){
+	    for (int i = frame_level-1; i >= 0; i --){
 	        int j = F_[i].size()-1;
 	        for (; j >= 0; j --){
 	        	bool res = partial_state_ ? car::imply (s->s(), F_[i][j]) : s->imply (F_[i][j]);
 	            if (res)
 				{
-					s->set_prefix_for_assumption (F_[i][j]);
-					break;
+					if (!(i == 0 && forward_))
+						s->set_prefix_for_assumption (F_[i][j]);
+					return i;
 				}
 	        }
-	        if (j < 0)
-	            return i-1;
 	    }
-		return frame_level - 1;
+		return -1;
 	}
 	
 	bool Checker::tried_before (const State* st, const int frame_level) {
