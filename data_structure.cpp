@@ -49,7 +49,11 @@
 	std::ostream& operator <<(std::ostream& os, const FrameElement& element)
 	{
 		for (auto id : element.cube())
-			os << id << " ";
+		{
+			int val = (id > 0) ? (id*2) : ((-id)*2+1);
+			os << val << " ";
+		}
+			
 		os << std::endl;
 		return os;
 	}

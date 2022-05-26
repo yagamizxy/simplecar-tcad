@@ -32,7 +32,11 @@ namespace car {
 void print (const std::vector<int>& v)
 {
     for (int i = 0; i < v.size (); i ++)
-        std::cout << v[i] << " ";
+    {
+        int val = (v[i]>0) ? v[i]*2 : ((-v[i])*2+1);
+        std::cout << val << " ";
+    }
+        
     std::cout << std::endl;
 }
 

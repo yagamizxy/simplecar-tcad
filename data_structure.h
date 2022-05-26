@@ -80,6 +80,11 @@
 			FrameElement element (cu);
 			cubes_.push_back (element);
 		}
+		inline void emplace_back (Cube& cu) 
+		{
+			FrameElement element (cu);
+			cubes_.emplace_back (element);
+		}
 
 		std::string to_string ();
 
@@ -101,6 +106,7 @@
 		inline Frame& operator [](int index) {return frames_[index];}
 		inline bool empty () {return frames_.empty ();}
 		inline void push_back (Frame& frame) {frames_.push_back (frame);}
+		inline void emplace_back (Frame& frame) {frames_.emplace_back (frame);}
 		inline void pop_back () {frames_.pop_back ();}
 
 		friend std::ostream& operator <<(std::ostream& os, const Fsequence& F);

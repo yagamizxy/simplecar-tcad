@@ -119,7 +119,8 @@ namespace car
 			for (vector<int>::iterator it = tmp_refer.begin(); it != tmp_refer.end(); ++it)
 				*it = model_->prime (*it);
 		}
-		Cube conflict = get_uc (minimal, tmp_refer);
+		int minimal_skip_id = model_->max_id ();
+		Cube conflict = get_uc (minimal, tmp_refer, minimal_skip_id);
 		
 		if (minimal)
 		{

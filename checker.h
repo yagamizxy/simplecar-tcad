@@ -103,9 +103,9 @@ namespace car
 		bool test_inv (Cube &cu);
 		StartSolver *start_solver_;
 		InvSolver *inv_solver_;
-		Fsequence F_;
+		Fsequence F_, F_buffer_;
 		Bsequence B_;
-		Frame frame_;   //to store the frame willing to be added in F_ in one step
+		Frame frame_, frame_buffer_;   //to store the frame willing to be added in F_ in one step
 		
 	    
 	    void get_previous (const Assignment& st, const int frame_level, std::vector<int>& res);
@@ -117,7 +117,7 @@ namespace car
 	    std::vector<State*> states_;
 	    std::vector<Cube> comms_;
 	    Cube comm_; 
-	    std::vector<Cube> deads_;
+	    std::vector<Cube> deads_, deads_buffer_;
 	    bool dead_flag_;
 		
 		bool safe_reported_;  //true means ready to return SAFE
@@ -174,6 +174,12 @@ namespace car
 				
 		
 		//inline functions
+		inline void clear_buffers () 
+		{
+			deads_buffer_.clear();
+			for (int i = 0; i < F_buffer_.size(); ++i)
+				F_buffer_[i].clear ();
+		}
 		inline bool is_initial (Cube& c){return init_->imply (c);}
 		inline void create_inv_solver (){
 			inv_solver_ = new InvSolver (model_, stats_, verbose_);
@@ -293,6 +299,7 @@ namespace car
 	    
 	    inline void clear_frame (){
 	        frame_.clear ();
+			frame_buffer_.clear ();
 	        cube_.clear ();
 			comm_.clear ();
 	        for (int i = 0; i < frame_.size (); i ++)
