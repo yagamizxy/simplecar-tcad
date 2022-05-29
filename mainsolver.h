@@ -38,6 +38,7 @@ class MainSolver : public CARSolver
 {
 	public:
 		MainSolver (Model*, Statistics* stats, int SAT_type, const bool verbose = false);
+		MainSolver (int max_id, Statistics* stats, int SAT_type, const bool verbose = false);
 		~MainSolver (){}
 		
 		//public funcitons
@@ -103,6 +104,17 @@ class MainSolver : public CARSolver
 		
 		inline int init_flag () {return init_flag_;}
 		inline int dead_flag () {return dead_flag_;}
+
+		inline int flag_of (const unsigned frame_level) 
+		{
+		    assert (frame_level >= 0);
+			while (frame_level >= frame_flags_.size ())
+			{
+				frame_flags_.push_back (max_flag_++);
+			}
+	        
+			return frame_flags_[frame_level];
+		}
 		
 	private:
 		//members
@@ -119,16 +131,7 @@ class MainSolver : public CARSolver
 		
 		
 		
-		inline int flag_of (const unsigned frame_level) 
-		{
-		    assert (frame_level >= 0);
-			while (frame_level >= frame_flags_.size ())
-			{
-				frame_flags_.push_back (max_flag_++);
-			}
-	        
-			return frame_flags_[frame_level];
-		}
+		
 		void shrink_model (Assignment& model, const bool forward, const bool partial);
 		void try_reduce (Cube& cu);
 };

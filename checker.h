@@ -99,7 +99,7 @@ namespace car
 
 		Model* model_;
 		MainSolver *solver_;
-		MainSolver *lift_, *dead_solver_;
+		MainSolver *lift_, *dead_solver_, *enumerate_solver_;
 		bool test_inv (Cube &cu);
 		StartSolver *start_solver_;
 		InvSolver *inv_solver_;
@@ -170,6 +170,9 @@ namespace car
 		void add_dead_to_inv_solver ();
 
 		void set_state_prefix_for_assumption (State* s, Frame& frame);
+		bool enumerate_solver_check (const Cube& st, const int frame_level);
+		void enumerate_solver_add_clause_from_cube (const Cube& cu, const int frame_level);
+		Cube enumerate_solver_get_conflict (const int frame_level);
 
 				
 		
