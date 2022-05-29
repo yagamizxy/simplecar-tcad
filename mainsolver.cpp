@@ -39,7 +39,7 @@ namespace car
 	    verbose_ = verbose;
 	    stats_ = stats;
 		model_ = NULL;
-		init_flag_ = max_id + 1;
+		init_flag_ = max_id + 1; 
 		dead_flag_ = max_id + 2;
 		max_flag_ = max_id + 3;
 	}

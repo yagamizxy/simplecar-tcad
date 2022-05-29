@@ -1118,7 +1118,7 @@ namespace car
 			cl.emplace_back (forward_? -(*it) : -model_->prime(*it));
 		}
 		start_solver_->add_clause (cl);
-		enumerate_solver_->add_clause (cl);
+		//enumerate_solver_->add_clause (cl);
 		
 		if (is_initial (dead_uc)){
 			//create dead clauses : MUST consider the initial state not excluded by dead states!!!
@@ -1145,12 +1145,14 @@ namespace car
 				solver_->add_clause (*it);
 				lift_->add_clause (*it);
 				dead_solver_->add_clause (*it);
+				enumerate_solver_->add_clause (*it);
 			}
 		}
 		else{
 			solver_->add_clause (cl);
 			lift_->add_clause (cl);
 			dead_solver_->add_clause (cl);
+			enumerate_solver_->add_clause (cl);
 		}
 			
 	}
