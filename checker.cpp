@@ -1113,12 +1113,12 @@ namespace car
 		deads_.emplace_back (dead_uc);
 		//car::print (dead_uc);
 		
+		enumerate_solver_add_clause_from_cube (dead_uc, -1);
 		Clause cl;	
 		for (auto it = dead_uc.begin(); it != dead_uc.end (); ++it){
 			cl.emplace_back (forward_? -(*it) : -model_->prime(*it));
 		}
 		start_solver_->add_clause (cl);
-		//enumerate_solver_->add_clause (cl);
 		
 		if (is_initial (dead_uc)){
 			//create dead clauses : MUST consider the initial state not excluded by dead states!!!
@@ -1145,14 +1145,12 @@ namespace car
 				solver_->add_clause (*it);
 				lift_->add_clause (*it);
 				dead_solver_->add_clause (*it);
-				enumerate_solver_->add_clause (*it);
 			}
 		}
 		else{
 			solver_->add_clause (cl);
 			lift_->add_clause (cl);
 			dead_solver_->add_clause (cl);
-			enumerate_solver_->add_clause (cl);
 		}
 			
 	}
@@ -1208,16 +1206,8 @@ namespace car
 	
 	int Checker::get_new_level (const State *s, const int frame_level){
 	    for (int i = frame_level-1; i >= 0; i --){
-			if (!enumerate_solver_check (s->s(), i))
-			{
-				if (!(i == 0 && forward_))
-				{
-					Cube uc = enumerate_solver_get_conflict (i);
-					s->set_prefix_for_assumption (uc);
-				}	
-				return i;		
-			}
-			/*
+			if (enumerate_solver_check (s->s(), i))
+				continue;
 	        int j = F_[i].size()-1;
 	        for (; j >= 0; j --){
 	        	bool res = partial_state_ ? car::imply (s->s(), F_[i][j]) : s->imply (F_[i][j]);
@@ -1228,28 +1218,34 @@ namespace car
 					return i;
 				}
 	        }
-			*/
+			if (j < 0)
+			{
+				Cube uc = enumerate_solver_get_conflict (i);
+				s->set_prefix_for_assumption (uc);
+				return i;
+			}
 	    }
 		return -1;
 	}
 
 	Cube Checker::enumerate_solver_get_conflict (const int frame_level)
 	{
+		assert (frame_level >= 0);
 		int frame_level_flag = enumerate_solver_->flag_of (frame_level);
 		return enumerate_solver_->get_conflict (frame_level_flag, false);
 	}
 
 	bool Checker::enumerate_solver_check (const Cube& st, const int frame_level)
 	{
-		int frame_level_flag = enumerate_solver_->flag_of (frame_level);
-		return enumerate_solver_->solve_with_assumption (st, frame_level_flag);
+		int flag = (frame_level < 0) ? enumerate_solver_->dead_flag () : enumerate_solver_->flag_of (frame_level);
+		return enumerate_solver_->solve_with_assumption (st, flag);
 	}
 
 	void Checker::enumerate_solver_add_clause_from_cube (const Cube& cu, const int frame_level)
 	{
-		int frame_level_flag = enumerate_solver_->flag_of (frame_level);
+		int flag = (frame_level < 0) ? enumerate_solver_->dead_flag() : enumerate_solver_->flag_of (frame_level);
 		Clause cl;
-		cl.emplace_back (-frame_level_flag);
+		cl.emplace_back (-flag);
 		for (auto id : cu)
 			cl.emplace_back (-id);
 		enumerate_solver_->add_clause (cl);
@@ -1258,6 +1254,8 @@ namespace car
 	bool Checker::tried_before (const State* st, const int frame_level) {
 		//check whether st is a dead state	
 		if (st->is_dead ()) 
+			return true;
+		if (!enumerate_solver_check (st->s(), -1))
 			return true;
 		
 		if (!enumerate_solver_check (st->s(), frame_level))
