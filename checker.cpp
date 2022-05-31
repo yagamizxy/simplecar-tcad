@@ -1238,7 +1238,16 @@ namespace car
 	bool Checker::enumerate_solver_check (const Cube& st, const int frame_level)
 	{
 		int flag = (frame_level < 0) ? enumerate_solver_->dead_flag () : enumerate_solver_->flag_of (frame_level);
-		return enumerate_solver_->solve_with_assumption (st, flag);
+		Cube assumption = st;
+		assumption.emplace_back (flag);
+		for (int i = 0; i <= F_.size(); ++i)
+		{
+			int tmp_flag = enumerate_solver_->flag_of (i);
+			if (flag != tmp_flag)
+				assumption.emplace_back (-tmp_flag);
+		}
+		enumerate_solver_->set_assumption (assumption);
+		return enumerate_solver_->solve_with_assumption ();
 	}
 
 	void Checker::enumerate_solver_add_clause_from_cube (const Cube& cu, const int frame_level)
