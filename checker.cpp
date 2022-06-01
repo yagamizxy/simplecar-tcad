@@ -960,35 +960,41 @@ namespace car
 			return;
 		}
 
-		/*
-		//make \@cu incremental
-		if (frame_level > 1)
+
+		//make cu incremental, this implementation assumes initial state vars are all 0.
+		if (forward_)
 		{
-			int i = F_[frame_level-1].size()-1;
-			//int find_prefix = false;
-			for (; i >= 0; i--)
+			if (is_initial (cu))
 			{
-				if (car::imply (cu, F_[frame_level-1][i]))
-					break;
-			}
-			if (i < 0)//not found
-			{
-				cout << "before merge " << endl;
-				car::print (cu);
-				car::print (s->prefix_for_assumption ());
-				Cube tmp_cu = car::vec_merge (cu, s->prefix_for_assumption ());
-				//if (tmp_cu.size () != s->prefix_for_assumption().size())// \@s does not imply \@cu
-				//	cu = tmp_cu;
-				cout << "after merge " << endl;
-				car::print (cu);
+				auto it = s->s().begin();
+				while ((*it) < 0) ++it;
+				assert (it != s->s().end());
+				int i = 0;
+				for (; i < cu.size(); ++i)
+					if (abs(cu[i]) > abs(*it))
+						break;
+				cu.insert (cu.begin()+i, *it);
 			}
 		}
-		*/
+		
+
 		FrameElement frame_element (cu);
 		s->set_prefix_for_assumption (cu);
 		stats_->count_update_F_time_start ();
 			
 		push_to_frame (frame_element, frame_level);
+
+		if (forward_)
+		{
+			for (int i = frame_level-1; i >= 1; --i)
+			{
+				FrameElement new_frame_element = frame_element;
+				new_frame_element.set_propagated (true);
+				push_to_frame (new_frame_element, i);
+			}
+				
+		}
+		
 				
 		stats_->count_update_F_time_end ();
 		
