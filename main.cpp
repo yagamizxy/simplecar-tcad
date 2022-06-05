@@ -73,9 +73,11 @@ void print_usage ()
   printf ("       -end            state numeration from end of the sequence\n");
   printf ("       -interaion      enable intersection heuristic\n");
   printf ("       -rotation       enable rotation heurisitc\n");
+  printf ("       -maxTry N       set max_try to be N, which is in [0,100]. Default is 0.\n");
   printf ("       -e              print witness (Default = off)\n");
   printf ("       -v              print verbose information (Default = off)\n");
   printf ("       -h              print help information\n");
+  
   
   printf ("NOTE: -f and -b cannot be used together!\n");
   printf ("NOTE: -begin and -end cannot be used together!\n");
@@ -121,6 +123,7 @@ void check_aiger (int argc, char** argv)
    bool end = true;
    bool inter = true;
    bool rotate = false;
+   int max_try = 0;
    
    string input;
    string output_dir;
@@ -164,6 +167,21 @@ void check_aiger (int argc, char** argv)
    			propagate = true;
    		else if (strcmp (argv[i], "-rotation") == 0)
    			rotate = true;
+      else if (strcmp (argv[i], "-maxTry") == 0)
+      {
+        i ++;
+        if (i >= argc)
+        {
+          print_usage ();
+          exit (0);
+        }
+        max_try = atoi (argv[i]);
+        if (max_try > 100 || max_try < 0)
+        {
+          print_usage();
+          exit (0);
+        }
+      }
    		else if (!input_set)
    		{
    			input = string (argv[i]);
@@ -235,7 +253,7 @@ void check_aiger (int argc, char** argv)
    //which is consistent with the HWMCC format
    assert (model->num_outputs () >= 1 || model->num_bad () >= 1);
    
-   ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,dead);
+   ch = new Checker (model, max_try, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,dead);
 
    aiger_reset(aig);
    

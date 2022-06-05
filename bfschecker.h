@@ -30,7 +30,7 @@
  
     class BfsChecker: public Checker {
         public:
-            BfsChecker (Model* model, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool verbose = false, bool minimal_uc = false) : Checker (model, stats, dot, forward, evidence, verbose, minimal_uc) {}
+            BfsChecker (Model* model, int max_try, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool verbose = false, bool minimal_uc = false) : Checker (model, max_try, stats, dot, forward, evidence, verbose, minimal_uc) {}
         protected:
             bool try_satisfy (const int frame_level);
             int do_search (const int frame_level);

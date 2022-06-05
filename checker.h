@@ -59,7 +59,7 @@ namespace car
 	class Checker 
 	{
 	public:
-		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool partial = false, bool propagate = false, bool begin = false, bool end = true, bool inter = true, bool rotate = false, bool verbose = false, bool minimal_uc = false,bool dead = false);
+		Checker (Model* model, int max_try, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool partial = false, bool propagate = false, bool begin = false, bool end = true, bool inter = true, bool rotate = false, bool verbose = false, bool minimal_uc = false,bool dead = false);
 		~Checker ();
 		
 		bool check (std::ofstream&);
@@ -80,6 +80,7 @@ namespace car
 		bool verbose_;
 		bool propagate_;
 		bool dead_;
+		int max_try_;
 		
 		//new flags for reorder and state enumeration
 		bool begin_, end_;  // for state enumeration
@@ -139,7 +140,7 @@ namespace car
 		bool solver_solve_with_assumption (State* s, const int frame_level, bool forward);
 		State* get_new_state (const State *s);
 		void extend_F_sequence ();
-		void update_F_sequence (const State* s, const int frame_level);
+		void update_F_sequence (const State* s, const int frame_level, const int max_try = MAX_TRY);
 		void update_frame_by_relative (const State* s, const int frame_level);
 		void update_B_sequence (State* s);
 		int get_new_level (const State *s, const int frame_level);
@@ -171,6 +172,9 @@ namespace car
 
 		void set_state_prefix_for_assumption (State* s, Frame& frame);
 
+		void try_reduce (Cube& cu, const State* s, const int frame_level, const int max_try);
+		bool remove_success (const int val, const Cube& cu, const Cube& refer, const State* s, const int frame_level, const int max_try);
+		bool block (State* s, int frame_level, int max_try);
 				
 		
 		//inline functions
