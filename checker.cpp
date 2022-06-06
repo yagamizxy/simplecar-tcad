@@ -857,19 +857,19 @@ namespace car
 	}
 	
 	
-	State* Checker::get_new_state (const State* s)
+	State* Checker::get_new_state (const State* s, bool aggressive)
 	{
 		Assignment st = solver_->get_state (forward_, partial_state_);
 		//st includes both input and latch parts
 		if (partial_state_)
-			get_partial (st, s);
+			get_partial (st, s, aggressive);
 		std::pair<Assignment, Assignment> pa = state_pair (st);
 		State* res = new State (s, pa.first, pa.second, forward_);
 		
 		return res;
 	}
 	
-	void Checker::get_partial (Assignment& st, const State* s){
+	void Checker::get_partial (Assignment& st, const State* s, bool aggressive){
 		if (!forward_) 
 			return;
 		Cube assumption = st;
@@ -900,8 +900,10 @@ namespace car
 			}
 			
 		///?????????????????
-			//lift_->add_clause (-flag);	
-			lift_->add_clause (flag);
+			if (aggressive)
+				lift_->add_clause (-flag);	
+			else 
+				lift_->add_clause (flag);
 			lift_->simplify ();
 			//lift_->print_clauses ();
 		}
@@ -1059,7 +1061,7 @@ namespace car
 			if (max_try > 0)
 			{
 				State* tmp_state = new State (assumption);
-				State* new_state = get_new_state (tmp_state);
+				State* new_state = get_new_state (tmp_state, false);
 				int new_frame_level = get_new_level (new_state, frame_level);
 				
 				if ((new_frame_level == -1) || (frame_level - new_frame_level > max_try))
@@ -1093,7 +1095,7 @@ namespace car
 		{
 			if (max_try > 0)
 			{
-				State* new_state = get_new_state (s);
+				State* new_state = get_new_state (s, false);
 				int new_frame_level = get_new_level (new_state, frame_level);
 				
 				if ((new_frame_level == -1) || (frame_level - new_frame_level > max_try))
@@ -1119,7 +1121,7 @@ namespace car
 		}
 		if (forward_ && dead_ && all_predeccessor_dead){
 			Cube dead_uc;
-			if (is_dead (s, dead_uc)){
+			if (is_dead (s, dead_uc, false)){
 				//cout << "dead: " << endl;
 				//car::print (dead_uc);
 				s->mark_dead ();
@@ -1150,7 +1152,7 @@ namespace car
 		return true;
 	}
 
-	bool Checker::is_dead (const State* s, Cube& dead_uc){
+	bool Checker::is_dead (const State* s, Cube& dead_uc, bool aggressive){
 	
 		Cube assumption;
 		
@@ -1197,7 +1199,7 @@ namespace car
 		}
 		else{
 			
-			if (!s->added_to_dead_solver ()){
+			if (aggressive && !s->added_to_dead_solver ()){
 				dead_solver_->CARSolver::add_clause_from_cube (s->s());
 				s->set_added_to_dead_solver (true);
 			}

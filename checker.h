@@ -138,7 +138,7 @@ namespace car
 		bool solve_with (const Cube &cu, const int frame_level);
 		bool solve_with (State* s, const int frame_level);
 		bool solver_solve_with_assumption (State* s, const int frame_level, bool forward);
-		State* get_new_state (const State *s);
+		State* get_new_state (const State *s, bool aggressive = true);
 		void extend_F_sequence ();
 		void update_F_sequence (const State* s, const int frame_level, const int max_try = MAX_TRY);
 		void update_frame_by_relative (const State* s, const int frame_level);
@@ -157,9 +157,9 @@ namespace car
 		void destroy_states ();
 		bool car_check ();
 		
-		void get_partial (Assignment& st, const State* s=NULL);
+		void get_partial (Assignment& st, const State* s=NULL, bool aggressive = true);
 		void add_dead_to_solvers (Cube& dead_uc);
-		bool is_dead (const State* s, Cube& dead_uc);
+		bool is_dead (const State* s, Cube& dead_uc, bool aggressive = true);
 		
 		
 		//propagation
