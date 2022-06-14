@@ -43,6 +43,7 @@ public:
 	
 	bool state_var (const int id)  {return (id >= 1) && (id <= num_inputs_+num_latches_);}
 	bool latch_var (const int id)  {return (id >= num_inputs_+1) && (id <= num_inputs_+num_latches_);}
+	bool input_var (const int id)  {return (id >= 1) && (id <= num_inputs_);}
 	
 	inline int num_inputs () {return num_inputs_;}
 	inline int num_latches () {return num_latches_;}
@@ -60,6 +61,7 @@ public:
 	
 	void shrink_to_previous_vars (Cube& cu, bool& constraint);
 	void shrink_to_latch_vars (Cube& cu, bool& constraint);
+	Cube shrink_to_input_vars (Assignment& st);
 	
 	inline int true_id () {return true_;}
 	inline int false_id () {return false_;}

@@ -339,6 +339,17 @@ namespace car{
 		}
 		uc = tmp;
 	}
+
+	Cube Model::shrink_to_input_vars (Assignment& st)
+	{
+		Cube tmp;
+		for (int i = 0; i < st.size (); i ++)
+		{
+			if (input_var (abs (st[i])))
+				tmp.push_back (st[i]);
+		}
+		return tmp;
+	}
 	
 	//propagate the model based on \@ assump, and the results are stored in \@ res
 	bool Model::propagate (const std::vector<int>& assump, std::vector<int>& res) {

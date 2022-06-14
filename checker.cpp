@@ -183,23 +183,25 @@ namespace car
 	*/
 	int Checker::do_search (const int frame_level) {	
 		//erase dead states
-		for (int i = B_.size()-1; i >= 0; --i){
-			for (int j = 0; j < B_[i].size(); ++j){
-				if (B_[i][j]->is_dead()){
-					State* s = B_[i][j];
-					B_[i].erase (B_[i].begin()+j);
-					delete s;
-					j --;
-				}
-			}
-		}
+		// for (int i = B_.size()-1; i >= 0; --i){
+		// 	for (int j = 0; j < B_[i].size(); ++j){
+		// 		if (B_[i][j]->is_dead()){
+		// 			State* s = B_[i][j];
+		// 			B_[i].erase (B_[i].begin()+j);
+		// 			delete s;
+		// 			j --;
+		// 		}
+		// 	}
+		// }
 		//end of erase
 		
 		if (begin_) {
 			vector<State*> states;
 			for (int i = 0; i < B_.size (); ++ i) {
-				for (int j = 0; j < B_[i].size (); ++ j) 
-					states.push_back (B_[i][j]);
+				for (int j = 0; j < B_[i].size (); ++ j){
+					if (!B_[i][j]->is_dead()) states.push_back (B_[i][j]);
+				}
+					
 			}
 			for (int i = 0; i < states.size (); ++ i) {
 				if (try_satisfy_by (frame_level, states[i]))
@@ -212,6 +214,7 @@ namespace car
 		if (end_) {
 	    	for (int i = B_.size () - 1; i >= 0; -- i) {
 	        	for (int j = 0; j < B_[i].size (); ++ j) {
+					if (B_[i][j]->is_dead()) continue;
 			    	if (try_satisfy_by (frame_level, B_[i][j]))
 			        	return 1;
 					if (safe_reported ())
@@ -555,12 +558,14 @@ namespace car
 	State* Checker::get_new_start_state ()
 	{
 		Assignment st = start_solver_->get_model ();
+		Cube st_input = model_->shrink_to_input_vars(st);
 		assert (st.size() >= model_->num_inputs() + model_->num_latches());
 		st.resize (model_->num_inputs() + model_->num_latches());
 		if (partial_state_)
 			get_partial (st);
 		std::pair<Assignment, Assignment> pa = state_pair (st);
-		State *res = new State (NULL, pa.first, pa.second, forward_, true);
+		//State *res = new State (NULL, pa.first, pa.second, forward_, true);
+		State *res = new State (NULL, st_input, pa.second, forward_, true);
 		return res;
 	}
 	
@@ -713,11 +718,14 @@ namespace car
 	State* Checker::get_new_state (const State* s)
 	{
 		Assignment st = solver_->get_state (forward_, partial_state_);
+		Cube st_input = model_->shrink_to_input_vars(st);
 		//st includes both input and latch parts
 		if (partial_state_)
 			get_partial (st, s);
 		std::pair<Assignment, Assignment> pa = state_pair (st);
-		State* res = new State (s, pa.first, pa.second, forward_);
+		//State* res = new State (s, pa.first, pa.second, forward_);
+		State* res = new State (s, st_input, pa.second, forward_);
+		
 		
 		return res;
 	}
