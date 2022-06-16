@@ -79,6 +79,7 @@ class Statistics
             new_time_get_new_level_ = 0.0;
             new_time_update_F_ = 0.0;
             new_time_update_B_ = 0.0;
+            new_time_remove_success_ = 0.0;
 
         }
         ~Statistics () {}
@@ -140,6 +141,7 @@ class Statistics
             std::cout << "      Time of get new level: " << new_time_get_new_level_ << std::endl;
             std::cout << "      Time of update F: " << new_time_update_F_ << std::endl;
             std::cout << "      Time of update B: " << new_time_update_B_ << std::endl;
+            std::cout << "      Time of remove_success: " << new_time_remove_success_ << std::endl;
         }
         inline void count_SAT_time_start ()
         {
@@ -253,6 +255,17 @@ class Statistics
                 break;
             }
 	        
+        }
+
+        inline void count_remove_success_time_start ()
+        {
+            remove_success_begin_ = clock ();
+        }
+        inline void count_remove_success_time_end ()
+        {
+            remove_success_end_ = clock ();
+	        double duration = double (remove_success_end_ - remove_success_begin_) / CLOCKS_PER_SEC;
+	        new_time_remove_success_ += duration;
         }
 
         inline void count_propagate_time_start ()
@@ -419,6 +432,7 @@ class Statistics
         clock_t try_before_begin_, try_before_end_;
         clock_t update_F_begin_, update_F_end_;
         clock_t update_B_begin_, update_B_end_;
+        clock_t remove_success_begin_, remove_success_end_;
 
         int new_num_main_solver_SAT_calls_;
         double new_time_main_solver_SAT_calls_;
@@ -440,6 +454,7 @@ class Statistics
         double new_time_get_new_level_;
         double new_time_update_F_;
         double new_time_update_B_;
+        double new_time_remove_success_;
 };
 
 

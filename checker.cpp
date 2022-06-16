@@ -1032,11 +1032,13 @@ namespace car
 				it --;
 				continue;
 			}
+			stats_->count_remove_success_time_start();
 			if (remove_success (*it, work_cu, refer, s, frame_level-1, max_try))
 			{
 				work_cu.erase (it);
 				it --;
 			}
+			stats_->count_remove_success_time_end();
 		}
 		work_cu.insert (work_cu.begin(), refer.begin(), refer.end());
 		if (work_cu.size() <= cu.size())
