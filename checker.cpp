@@ -750,7 +750,8 @@ namespace car
 		
 			assert (!ret);
 			bool constraint = false;
-			st = lift_->get_conflict (!forward_, minimal_uc_, constraint);
+			//st = lift_->get_conflict (!forward_, minimal_uc_, constraint);
+			st = lift_->get_conflict (!forward_, false, constraint);
 			if (st.empty()){
 			//every state can reach s, thus make st the initial state.
 				st = init_->s();
@@ -767,7 +768,8 @@ namespace car
 			bool ret = lift_->solve_with_assumption (assumption);
 			assert (!ret);
 			bool constraint = false;
-			st = lift_->get_conflict (!forward_, minimal_uc_, constraint);
+			//st = lift_->get_conflict (!forward_, minimal_uc_, constraint);
+			st = lift_->get_conflict (!forward_, false, constraint);
 		
 			//remove -bad_
 			for (auto it = st.begin(); it != st.end(); ++it){
