@@ -127,7 +127,7 @@ namespace car
 				return false;
 			}
 			extend_F_sequence ();
-			destroy_states ();
+			//destroy_states ();
 			
 			if (propagate_){
 				clear_frame ();
@@ -964,7 +964,7 @@ namespace car
 		// cout << "before reduce: "<<endl;
 		// car::print (cu);
 		// cout << "refer: "<<endl;
-		//car::print (s->prefix_for_assumption ());
+		// car::print (s->prefix_for_assumption ());
 		if (forward_)
 			try_reduce (cu, s, frame_level, max_try);
 		// cout << "after reduce: "<<endl;
@@ -1315,16 +1315,16 @@ namespace car
 		//2. if a clause in \@ frame implies \@ cu, replace it by \@cu
 		Frame tmp_frame;
 		stats_->count_clause_contain_time_start ();
-		//int max_count = 500;
+		int max_count = 5000;
 		for (int i = 0; i < frame.size(); i ++)
 		{   
-			/*
+			
 			if (i < frame.size()-max_count)
 			{
 				tmp_frame.emplace_back (frame.index_of (i));
 				continue;
 			}
-			*/
+			
 			
 			if (imply (cu, frame[i]))
 			{
