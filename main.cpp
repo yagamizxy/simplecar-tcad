@@ -41,9 +41,10 @@ void  signal_handler (int sig_num)
         cout << "Last Frame " << endl;
 		
 		ch->print_frames_sizes ();
-	    cout << "frame_ size:" << ch->frame_size () << endl;
-	    delete ch;
-	    ch = NULL;
+    cout << "frame_ size:" << ch->frame_size () << endl;
+     cout << "B_ size: " << ch->print_B_sizes() << endl;
+    delete ch;
+    ch = NULL;
 	}
 	
 	if (model != NULL) {
@@ -73,11 +74,9 @@ void print_usage ()
   printf ("       -end            state numeration from end of the sequence\n");
   printf ("       -interaion      enable intersection heuristic\n");
   printf ("       -rotation       enable rotation heurisitc\n");
-  printf ("       -maxTry N       set max_try to be N, which is in [0,100]. Default is 0.\n");
   printf ("       -e              print witness (Default = off)\n");
   printf ("       -v              print verbose information (Default = off)\n");
   printf ("       -h              print help information\n");
-  
   
   printf ("NOTE: -f and -b cannot be used together!\n");
   printf ("NOTE: -begin and -end cannot be used together!\n");
@@ -120,10 +119,9 @@ void check_aiger (int argc, char** argv)
    bool partial = false;
    bool propagate = false;
    bool begin = false;
-   bool end = true;
+   bool end = false;
    bool inter = true;
    bool rotate = false;
-   int max_try = 0;
    
    string input;
    string output_dir;
@@ -167,21 +165,6 @@ void check_aiger (int argc, char** argv)
    			propagate = true;
    		else if (strcmp (argv[i], "-rotation") == 0)
    			rotate = true;
-      else if (strcmp (argv[i], "-maxTry") == 0)
-      {
-        i ++;
-        if (i >= argc)
-        {
-          print_usage ();
-          exit (0);
-        }
-        max_try = atoi (argv[i]);
-        if (max_try > 100 || max_try < 0)
-        {
-          print_usage();
-          exit (0);
-        }
-      }
    		else if (!input_set)
    		{
    			input = string (argv[i]);
@@ -241,7 +224,7 @@ void check_aiger (int argc, char** argv)
      aiger_reencode(aig);
      
    stats.count_model_construct_time_start ();
-   model = new Model (aig, forward);
+   model = new Model (aig);
    stats.count_model_construct_time_end ();
    
    if (verbose)
@@ -251,9 +234,9 @@ void check_aiger (int argc, char** argv)
    
    //assume that there is only one output needs to be checked in each aiger model, 
    //which is consistent with the HWMCC format
-   assert (model->num_outputs () >= 1 || model->num_bad () >= 1);
+   assert (model->num_outputs () >= 1);
    
-   ch = new Checker (model, max_try, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,dead);
+   ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,dead);
 
    aiger_reset(aig);
    
@@ -281,11 +264,9 @@ void check_aiger (int argc, char** argv)
 
 int main (int argc, char ** argv)
 {
-  
-  signal (SIGALRM, signal_handler);
-  alarm(3600);
   signal (SIGINT, signal_handler);
+  
   check_aiger (argc, argv);
-  alarm(0);
+  
   return 0;
 }

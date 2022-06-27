@@ -26,15 +26,14 @@
 #include "utility.h"
 #include "statistics.h"
 using namespace std;
-//#define __DEBUG__
+//#define __DEBUG__;
 
 namespace car
 {
     ///////////////////////////////////main functions//////////////////////////////////
     bool Checker::check (std::ofstream& out){
-		Cube& bads = (model_->num_bad () == 0)?model_->outputs():model_->bads();
-	    for (int i = 0; i < bads.size(); i ++){
-	        bad_ = bads[i];
+	    for (int i = 0; i < model_->num_outputs (); i ++){
+	        bad_ = model_->output (i);
 	        
 	        //for the particular case when bad_ is true or false
 	        if (bad_ == model_->true_id ()){
@@ -71,8 +70,13 @@ namespace car
    			else
     			out << "0" << endl;
     		out << "b" << i << endl;
+	#ifdef __DEBUG__
+		std::cout<<"B size: "<<print_B_num()<<std::endl;
+		std::cout<<"dead state number: "<<print_dead_num()<<std::endl;	
+	#endif		
    			if (evidence_ && res)
     			print_evidence (out);
+			//check_evidence ();
     		out << "." << endl;
 	        car_finalization ();
 	        return res;
@@ -92,32 +96,22 @@ namespace car
 			
 		int frame_level = 0;
 		while (true){
-			
 		    cout << "Frame " << frame_level << endl;
 		    //print the number of clauses in each frame
 		    for (int i = 0; i < F_.size (); i ++) {
 		    	cout << F_[i].size () << " ";
 		    }
 		    cout << endl;
-			//cout << F_;
-			/*
-			cout << F_;
-			cout << "===========deads========" << endl;
-			for(auto it = deads_.begin(); it != deads_.end(); ++it)
-				car::print (*it);
-			*/
 		    //end of print
 		    
 		    //handle the special start states
 			reset_start_solver ();
-			
 			if (!propagate_)
 		    	clear_frame ();
 			minimal_update_level_ = F_.size () - 1;
 			if (try_satisfy (frame_level)){
 				if (verbose_)
 					cout << "return SAT from try_satisfy at frame level " << frame_level << endl;
-				//cout << F_;
 				return true;
 			}
 			//it is true when some reason returned from Main solver is empty
@@ -127,17 +121,11 @@ namespace car
 				return false;
 			}
 			extend_F_sequence ();
-			destroy_states ();
 			
 			if (propagate_){
 				clear_frame ();
-				stats_->count_propagate_time_start();
-				if (propagate ()){
-					stats_->count_propagate_time_end();
+				if (propagate ())
 					return false;
-				}
-				else
-					stats_->count_propagate_time_end();	
 			}
 			
 			frame_level ++;
@@ -150,19 +138,7 @@ namespace car
 				return false;
 			}
 			
-			/*
-			cout << "deads_buffer_:" << endl;
-			for (auto it = deads_buffer_.begin(); it != deads_buffer_.end(); ++it)
-				car::print (*it);
-			cout << "deads_:" << endl;
-			for (auto it = deads_.begin(); it != deads_.end(); ++it)
-				car::print (*it);
-			cout << "frame_buffer_: " << endl << frame_buffer_; 
-			cout << "frame_: " << endl << frame_; 
-			cout << "F_buffer_: " << endl << F_buffer_; 
-			cout << "F_: " << endl << F_; 
-			*/
-			clear_buffers ();
+			
 		}
 		if (verbose_)
 			cout << "end of check" << endl;
@@ -186,15 +162,7 @@ namespace car
 		std::cout<<"--------------"<<std::endl;
 		std::cout<<"pick a start state: "<<s<<std::endl;
 	#endif
-			/*
-			if ((forward_ && F_.size() > 2) || (!forward_ && F_.size() > 1))
-			{
-				cout << "frame_level: " << frame_level << endl;
-				set_state_prefix_for_assumption (s, F_[F_.size()-2]);
-			}
-			*/
-			int new_level = get_new_level (s, F_.size());
-			
+		
 		    if (!forward_) //for dot drawing
 			    s->set_initial (true);
 			
@@ -205,7 +173,7 @@ namespace car
 			
 			s->set_depth (0);
 		    update_B_sequence (s);
-			if (try_satisfy_by (new_level, s))
+			if (try_satisfy_by (frame_level, s))
 			    return true;
 			if (safe_reported ())
 				return false;
@@ -213,45 +181,6 @@ namespace car
 		}
 	
 		return false;
-	}
-
-	void Checker::set_state_prefix_for_assumption (State* s, Frame& frame)
-	{
-		int i = frame.size()-1;
-		for (; i >=0 ; --i)
-		{
-			if (car::imply (s->s(), frame[i]))
-			{
-				s->set_prefix_for_assumption (frame[i]);
-				break;
-			}
-		}
-		if (i < 0) //not found
-		{
-			int j = deads_.size()-1;
-			for (; j >=0 ; --j)
-			{
-				if (car::imply (s->s(), deads_[j]))
-				{
-					s->set_prefix_for_assumption (deads_[j]);
-					break;
-				}
-			}
-			if (j >= 0)
-			{
-				cout << "set_state_prefix_for_assumption: find the prefix in deads" << endl;
-				car::print (s->s());
-				exit (0);
-			}
-			else //not found in dead states either
-			{
-				cout << "set_state_prefix_for_assumption: something is wrong, cannot find the prefix" << endl;
-				car::print (s->s());
-				cout << F_;
-				exit (0);
-			}
-			
-		}
 	}
 	
 	/*Main function to do state search in CAR
@@ -264,24 +193,29 @@ namespace car
 	*/
 	int Checker::do_search (const int frame_level) {	
 		//erase dead states
-		for (int i = B_.size()-1; i >= 0; --i){
-			for (int j = 0; j < B_[i].size(); ++j){
-				if (B_[i][j]->is_dead()){
-					State* s = B_[i][j];
-					B_[i].erase (B_[i].begin()+j);
-					delete s;
-					j --;
-				}
-			}
-		}
+		// for (int i = B_.size()-1; i >= 0; --i){
+		// 	for (int j = 0; j < B_[i].size(); ++j){
+		// 		if (B_[i][j]->is_dead()){
+		// 			State* s = B_[i][j];
+		// 			B_[i].erase (B_[i].begin()+j);
+		// 			delete s;
+		// 			j --;
+		// 		}
+		// 	}
+		// }
 		//end of erase
 		
 		if (begin_) {
 			vector<State*> states;
 			for (int i = 0; i < B_.size (); ++ i) {
-				for (int j = 0; j < B_[i].size (); ++ j) 
-					states.emplace_back (B_[i][j]);
+			for (int j = 0; j < B_[i].size (); ++ j){
+				if (!B_[i][j]->is_dead()) states.push_back (B_[i][j]);
+			}		
 			}
+			// if(!B_.empty()){
+			// 	for (int j = 0; j < B_[0].size (); ++ j) 
+			//  		if (!B_[0][j]->is_dead())  states.push_back (B_[0][j]);
+			// }
 			for (int i = 0; i < states.size (); ++ i) {
 				if (try_satisfy_by (frame_level, states[i]))
 			    	return 1;
@@ -293,6 +227,11 @@ namespace car
 		if (end_) {
 	    	for (int i = B_.size () - 1; i >= 0; -- i) {
 	        	for (int j = 0; j < B_[i].size (); ++ j) {
+	#ifdef __DEBUG__
+		std::cout<<"--------------"<<std::endl;
+		std::cout<<"the first try satisfy by : "<<B_[i][j]<<std::endl;
+	#endif
+					if (B_[i][j]->is_dead()) continue;
 			    	if (try_satisfy_by (frame_level, B_[i][j]))
 			        	return 1;
 					if (safe_reported ())
@@ -309,18 +248,12 @@ namespace car
 	#ifdef __DEBUG__
 		std::cout<<"--------------"<<std::endl;
 		std::cout<<"try state framelevel pair : "<<s<<" , "<<frame_level<<std::endl;
+		print_uc(s->s());
+		std::cout<<"current depth: "<<s->depth()<<std::endl;
+		//std::cout<<"current state input: "<<s->inputs_vec()[0]<<std::endl;
 	#endif
-		stats_->count_try_before_time_start ();
-
-		if (tried_before (s, frame_level+1)){
-
-	#ifdef __DEBUG__
-		std::cout<<"state is tried before: "<<s<<std::endl;
-	#endif
-			stats_->count_try_before_time_end ();
+		if (tried_before (s, frame_level+1))
 			return false;
-		}
-		stats_->count_try_before_time_end ();	
 		
 		//if (frame_level < minimal_update_level_)
 			//minimal_update_level_ = frame_level;
@@ -334,8 +267,7 @@ namespace car
 		else
 		{
 		 	  
-		    //while (solve_with (const_cast<State*>(s)->s (), frame_level))
-			while (solve_with (s, frame_level))
+		    while (solve_with (const_cast<State*>(s)->s (), frame_level))
 		    {
 			    State* new_state = get_new_state (s);
 			    assert (new_state != NULL);
@@ -352,16 +284,17 @@ namespace car
 			    if (dot_ != NULL)
 			        (*dot_) << "\n\t\t\t" << const_cast<State*> (s)->id () << " -- " << new_state->id ();
 			    //////generate dot data
-			    stats_->count_get_new_level_time_start ();
+			    
 			    int new_level = get_new_level (new_state, frame_level);
-				stats_->count_get_new_level_time_end ();
 	#ifdef __DEBUG__
 		std::cout<<"find new state frame level pair: "<<new_state<<" , "<<new_level<<std::endl;
+		print_uc(new_state->s());
+		std::cout<<"new state next state: "<<new_state->next()<<std::endl;
+		std::cout<<"new state depth: "<<new_state->depth()<<std::endl;
+		//std::cout<<"new state input: "<<new_state->inputs_vec()[0]<<std::endl;
 	#endif
-				stats_->count_update_B_time_start ();
 			    update_B_sequence (new_state);
-			    stats_->count_update_B_time_end ();
-				
+			    
 			    if (try_satisfy_by (new_level, new_state))
 				    return true;
 				if (safe_reported ())
@@ -372,16 +305,13 @@ namespace car
 					
 				if (frame_level < F_.size ())
 				{
-				    stats_->count_try_before_time_start ();
+				    
 				    while (tried_before (s, frame_level+1))
 				    {
 				        frame_level = frame_level + 1;
-					    if (frame_level >= F_.size ()){
-							stats_->count_try_before_time_end ();
-							return false;
-						}  	
+					    if (frame_level >= F_.size ())
+						    return false;	
 				    }
-					stats_->count_try_before_time_end ();
 				}
 		    }
 		}
@@ -390,7 +320,9 @@ namespace car
 			Cube dead_uc;
 			if (is_dead (s, dead_uc)){
 	#ifdef __DEBUG__
-		std::cout<<"state is detected as dead state: "<<s<<std::endl;
+		print_uc(s->s());
+		std::cout<<s<<" s is a dead state, dead uc is following: "<<std::endl;	
+		print_uc(dead_uc);	
 	#endif
 				//cout << "dead: " << endl;
 				//car::print (dead_uc);
@@ -403,9 +335,7 @@ namespace car
 	#ifdef __DEBUG__
 		std::cout<<"add correponding uc to F: "<<s<<std::endl;
 	#endif
-		//stats_->count_update_F_time_start ();
-		update_F_sequence (s, frame_level+1, max_try_);
-		//stats_->count_update_F_time_end ();
+		update_F_sequence (s, frame_level+1);
 		if (safe_reported ())
 			return false;
 		
@@ -415,7 +345,7 @@ namespace car
 		   /*
 		    if (s->work_count () >= MAX_TRY) {
 		        s->set_work_level (frame_level);
-		        states_.emplace_back (s);
+		        states_.push_back (s);
 		        return false;
 		    }
 		    s->work_count_inc ();
@@ -442,42 +372,37 @@ namespace car
 		
 		bool flag = true;
 		for (int i = 0; i < frame.size (); ++i){
-			if (frame.propagated(i))
-				continue;
 			Cube& cu = frame[i];
-
-			int j = 0;
-			for (; j < next_frame.size(); ++j){
-				if (car::imply (cu, next_frame[j]) )
-				{
-					frame.set_propagated (i, true);
+			
+			
+			bool propagated = false;
+			for (int j = 0; j < next_frame.size(); ++j){
+				if (car::imply (cu, next_frame[j]) && car::imply (next_frame[j], cu)){
+					propagated = true;
 					break;
 				}
 			}
-			if (j < next_frame.size()) 
-				continue;
+			if (propagated) continue;
 			
+	
 		    if (propagate (cu, n)){
-				FrameElement frame_element = frame.index_of (i);
-				frame_element.set_propagated (false);
-		    	push_to_frame (frame_element, n+1);
-				frame.set_propagated (i, true);
+		    	push_to_frame (cu, n+1);
 		    }
 		    else
-				flag = false;
+		    	flag = false;
 		}
 		
 		if (flag)
 			return true;
 		return false;
 	}
-
+	
 	bool Checker::propagate (Cube& cu, int n){
 		solver_->set_assumption (cu, n, forward_);
 		//solver_->print_assumption();
 		//solver_->print_clauses();
 	    stats_->count_main_solver_SAT_time_start ();
-		bool res = solver_->propagate_solve_with_assumption ();
+		bool res = solver_->solve_with_assumption ();
 		stats_->count_main_solver_SAT_time_end ();
 		if (!res)
 			return true;
@@ -487,7 +412,7 @@ namespace car
 		
 	//////////////helper functions/////////////////////////////////////////////
 
-	Checker::Checker (Model* model, int max_try, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc,bool dead)
+	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc,bool dead)
 	{
 	    
 		model_ = model;
@@ -519,7 +444,6 @@ namespace car
 		end_ = end;
 		inter_ = inter;
 		rotate_ = rotate;
-		max_try_ = max_try;
 	}
 	Checker::~Checker ()
 	{
@@ -556,13 +480,13 @@ namespace car
 	
 	void Checker::car_initialization ()
 	{
-	    solver_ = new MainSolver (model_, stats_,1, verbose_);
+	    solver_ = new MainSolver (model_, stats_, verbose_);
 	    if (forward_){
-	    	lift_ = new MainSolver (model_, stats_, 5,verbose_);
-	    	dead_solver_ = new MainSolver (model_, stats_, 4,verbose_);
+	    	lift_ = new MainSolver (model_, stats_, verbose_);
+	    	dead_solver_ = new MainSolver (model_, stats_, verbose_);
 	    	dead_solver_->add_clause (-bad_);
 	    }
-		start_solver_ = new StartSolver (model_, stats_,bad_, forward_, verbose_);
+		start_solver_ = new StartSolver (model_, bad_, forward_, verbose_);
 		assert (F_.empty ());
 		assert (B_.empty ());
 		
@@ -625,26 +549,25 @@ namespace car
 		    for (int i = 0; i < init_->size (); i ++)
 		    {
 		        Cube cu;
-		        cu.emplace_back (-init_->element (i));
-		        frame.emplace_back (cu);
+		        cu.push_back (-init_->element (i));
+		        frame.push_back (cu);
 		    }
 		}
 		else
 		{
 			bool con;
-		    Cube cu = solver_->get_conflict (bad_, minimal_uc_);
+		    Cube cu = solver_->get_conflict (bad_,minimal_uc_);
 	        if (cu.empty ())
 	        {
 	             report_safe ();
 	             return;
 	        }
-	        frame.emplace_back (cu);
-		comms_.emplace_back (cu);
+	        frame.push_back (cu);
+		comms_.push_back (cu);
 		}
-		F_.emplace_back (frame);
-		F_buffer_.emplace_back (frame);
+		F_.push_back (frame);
 		Cube& cu = init_->s();
-		cubes_.emplace_back (cu);
+		cubes_.push_back (cu);
 		solver_->add_new_frame (frame, F_.size()-1, forward_);
 	}
 	
@@ -672,16 +595,29 @@ namespace car
 	State* Checker::get_new_start_state ()
 	{
 		Assignment st = start_solver_->get_model ();
-		assert (st.size() >= model_->num_inputs() + model_->num_latches());
-		st.resize (model_->num_inputs() + model_->num_latches());
-		//cout << "before partial" << endl;
-		//car::print (st);
-		if (partial_state_)
+		Cube st_input = model_->shrink_to_input_vars(st);
+	#ifdef __DEBUG__
+		//Cube st_latch = st;
+		//bool constraint = false;
+		//model_->shrink_to_latch_vars(st_latch,constraint);
+		// std::cout<<"st: ";
+		// print_uc(st);	
+	#endif
+		// assert (st.size() >= model_->num_inputs() + model_->num_latches());
+		// st.resize (model_->num_inputs() + model_->num_latches());
+		if (partial_state_){
+			model_->shrink_to_state_vars(st);
 			get_partial (st);
-		//cout << "after partial" << endl;
-		//car::print (st);
+		}
+		// Cube assumption = st_input;
+		// assumption.push_back(bad_);
+		// assumption.insert(assumption.end(),st.begin(),st.end());
+		// bool assert_res = solver_->solve_with_assumption (assumption);
+		// assert(assert_res);
 		std::pair<Assignment, Assignment> pa = state_pair (st);
-		State *res = new State (NULL, pa.first, pa.second, forward_, true);
+		//can add a assert that st is a real bad state
+		//State *res = new State (NULL, pa.first, pa.second, forward_, true);
+		State *res = new State (NULL, st_input, pa.second, forward_, true);
 		return res;
 	}
 	
@@ -691,20 +627,20 @@ namespace car
 		if (!partial_state_){
 	    	assert (st.size () >= model_->num_inputs () + model_->num_latches ());
 	    	for (int i = 0; i < model_->num_inputs (); i ++)
-	        	inputs.emplace_back (st[i]);
+	        	inputs.push_back (st[i]);
 	    	for (int i = model_->num_inputs (); i < st.size (); i ++)
 	    	{
 	        	if (abs (st[i]) > model_->num_inputs () + model_->num_latches ())
 	            	break;
-	        	latches.emplace_back (st[i]);
+	        	latches.push_back (st[i]);
 	    	}
 	    }
 	    else{
 	    	for (auto it = st.begin(); it != st.end (); ++it){
 	    		if (abs(*it) <= model_->num_inputs ())
-	    			inputs.emplace_back (*it);
+	    			inputs.push_back (*it);
 	    		else if (abs(*it) <= model_->num_inputs () + model_->num_latches ())
-	    			latches.emplace_back (*it);
+	    			latches.push_back (*it);
 	    	}
 	    }
 	    return std::pair<Assignment, Assignment> (inputs, latches);
@@ -814,39 +750,6 @@ namespace car
 		inv_solver_->release_constraint_and ();
 	}
 	
-	bool Checker::solve_with (State* s, const int frame_level)
-	{
-		if (frame_level == -1)
-			return immediate_satisfiable (s->s());
-				
-		bool res = solver_solve_with_assumption (s, frame_level, forward_);
-		
-		return res;
-	}
-
-	bool Checker::solver_solve_with_assumption (State* s, const int frame_level, bool forward){
-	    Assignment st2 = s->prefix_for_assumption (); 
-		for (auto it = s->s().begin(); it != s->s().end(); ++it)
-			st2.emplace_back (*it);
-	    //add_intersection_last_uc_in_frame_level_plus_one (st2, frame_level);
-	    solver_->set_assumption (st2, frame_level, forward);
-	    stats_->count_main_solver_SAT_time_start ();
-		bool res = solver_->solve_with_assumption ();
-		stats_->count_main_solver_SAT_time_end ();
-		if (!res) {
-		    Assignment st3; 
-		    st3.reserve (model_->num_latches());
-		    for (int i = st2.size ()-model_->num_latches(); i < st2.size (); ++ i)
-		    	st3.emplace_back (st2[i]);
-		    if (frame_level+1 < cubes_.size ()) 
-		        cubes_[frame_level+1] = st3;
-		    else
-		        cube_ = st3;
-		}
-		 return res;
-	}
-	    
-
 	bool Checker::solve_with (const Cube& s, const int frame_level)
 	{
 		if (frame_level == -1)
@@ -857,43 +760,56 @@ namespace car
 		return res;
 	}
 	
+	bool Checker::solve_for_recursive (Cube& s, int frame_level, Cube& tmp_block){
+		assert (frame_level != -1);
+		
+		return solver_->solve_with_assumption_for_temporary (s, frame_level, forward_, tmp_block);
+				
+	}
 	
-	State* Checker::get_new_state (const State* s, bool aggressive)
+	State* Checker::get_new_state (const State* s)
 	{
 		Assignment st = solver_->get_state (forward_, partial_state_);
+		Cube st_input = model_->shrink_to_input_vars(st);
+	#ifdef __DEBUG__
+		// Cube st_latch = st;
+		// bool constraint = false;
+		// model_->shrink_to_latch_vars(st_latch,constraint);
+		// std::cout<<"before partial: ";
+		// print_uc(st_latch);	
+	#endif
 		//st includes both input and latch parts
 		if (partial_state_)
-			get_partial (st, s, aggressive);
+			get_partial (st, s);
 		std::pair<Assignment, Assignment> pa = state_pair (st);
-		State* res = new State (s, pa.first, pa.second, forward_);
+		//State* res = new State (s, pa.first, pa.second, forward_);
+		State* res = new State (s, st_input, pa.second, forward_);
 		
 		return res;
 	}
 	
-	void Checker::get_partial (Assignment& st, const State* s, bool aggressive){
+	void Checker::get_partial (Assignment& st, const State* s){
 		if (!forward_) 
 			return;
 		Cube assumption = st;
-		Cube st_input = st;
-		model_->shrink_to_input_vars(st_input);
 		if (s != NULL){
 			Cube& cube = s->s();
 			Clause cl;
 			for (auto it = cube.begin(); it != cube.end(); ++it)
-				cl.emplace_back (-model_->prime (*it));
+				cl.push_back (-model_->prime (*it));
 			int flag = lift_->new_flag ();
-			cl.emplace_back (flag);
+			cl.push_back (flag);
 			lift_->add_clause (cl);
 		
-			assumption.emplace_back (-flag);
+			assumption.push_back (-flag);
 			bool ret = lift_->solve_with_assumption (assumption);
 			//lift_->print_assumption ();
 			//lift_->print_clauses ();
 		
 			assert (!ret);
 			bool constraint = false;
-			st = lift_->get_conflict (!forward_, minimal_uc_, constraint);
-			//st.insert(st_input.begin(),st_input.end(),st.end());
+			//st = lift_->get_conflict (!forward_, minimal_uc_, constraint);
+			st = lift_->get_conflict (!forward_, false, constraint);
 			if (st.empty()){
 			//every state can reach s, thus make st the initial state.
 				st = init_->s();
@@ -901,20 +817,16 @@ namespace car
 			}
 			
 		///?????????????????
-			if (aggressive)
-				lift_->add_clause (-flag);	
-			else 
-				lift_->add_clause (flag);
-			lift_->simplify ();
+			lift_->add_clause (-flag);	
 			//lift_->print_clauses ();
 		}
 		else{
-			assumption.emplace_back (-bad_);
+			assumption.push_back (-bad_);
 			//lift_->print_clauses();
 			bool ret = lift_->solve_with_assumption (assumption);
 			assert (!ret);
 			bool constraint = false;
-			st = lift_->get_conflict (!forward_, minimal_uc_, constraint);
+			st = lift_->get_conflict (!forward_, false, constraint);
 		
 			//remove -bad_
 			for (auto it = st.begin(); it != st.end(); ++it){
@@ -923,7 +835,6 @@ namespace car
 					break;
 				}
 			}
-			//st.insert(st_input.begin(),st_input.end(),st.end());
 			
 			assert (!st.empty());
 		}
@@ -932,11 +843,9 @@ namespace car
 	
 	void Checker::extend_F_sequence ()
 	{
-		F_.emplace_back (frame_);
-		F_buffer_.emplace_back (frame_buffer_);
-		
-		cubes_.emplace_back (cube_);
-		comms_.emplace_back (comm_);
+		F_.push_back (frame_);
+		cubes_.push_back (cube_);
+		comms_.push_back (comm_);
 		solver_->add_new_frame (frame_, F_.size()-1, forward_);
 	}
 	
@@ -945,43 +854,73 @@ namespace car
 	    while (int (B_.size ()) <= s->depth ())
 	    {
 	        vector<State*> v;
-	        B_.emplace_back (v);
+	        B_.push_back (v);
 	    }
-	    B_[s->depth ()].emplace_back (s);
+	    B_[s->depth ()].push_back (s);
 	}
 	
-	void Checker::update_F_sequence (const State* s, const int frame_level, const int max_try)
+	void Checker::update_F_sequence (const State* s, const int frame_level)
 	{	
 		bool constraint = false;
-		Cube cu = solver_->get_conflict (s, forward_, minimal_uc_, s->prefix_for_assumption (), constraint);
-		//pay attention to the size of cu!
-		if(cu.empty()){
-			report_safe ();
-			return;
+		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
+		
+		/*
+		Cube dead_uc;
+		if (is_dead (s, dead_uc)){
+			//cout << "dead: " << endl;
+			//car::print (dead_uc);
+			add_dead_to_solvers (dead_uc);
+			//if (car::imply (cu, dead_uc))
+				return;
 		}
-
-		// cout << "level: " << frame_level << endl;
-		// cout << "before reduce: "<<endl;
-		// car::print (cu);
-		// cout << "refer: "<<endl;
-		//car::print (s->prefix_for_assumption ());
-		if (forward_)
-			try_reduce (cu, s, frame_level, max_try);
-		// cout << "after reduce: "<<endl;
-		// car::print (cu);
-
+		*/
+		
+		
+		//foward cu MUST rule out those not in \@s
+		if (forward_){
+			Cube tmp;
+			Cube &st = s->s();
+			if (!partial_state_){
+				for(auto it = cu.begin(); it != cu.end(); ++it){
+					int latch_start = model_->num_inputs()+1;
+					if (st[abs(*it)-latch_start] == *it)
+						tmp.push_back (*it);
+				}
+			}
+			else{
+				hash_set<int> tmp_set;
+				for (auto it = st.begin (); it != st.end(); ++it)
+					tmp_set.insert (*it);
+				for (auto it = cu.begin(); it != cu.end(); ++it){
+					if (tmp_set.find (*it) != tmp_set.end())
+						tmp.push_back (*it);
+				}
+			}
+			cu = tmp;
+		}
+		
+		//assert (!cu.empty());
+		
 		if(cu.empty()){
 			report_safe ();
+		}
+		
+		/*
+		if (frame_level <= F_.size()){
+			Cube next_cu;
+			cu = recursive_block (s, frame_level, cu, next_cu);
+		}
+		*/
+		
+		//pay attention to the size of cu!
+		if (safe_reported ())
+		{
 			return;
 		}
 		
-
-	/*
-		//make cu incremental, this implementation assumes initial state vars are all 0.
-		if (forward_)
-		{
-			if (is_initial (cu))
-			{
+		
+		if (forward_){
+			if (is_initial (cu)){
 				auto it = s->s().begin();
 				while ((*it) < 0) ++it;
 				assert (it != s->s().end());
@@ -992,171 +931,22 @@ namespace car
 				cu.insert (cu.begin()+i, *it);
 			}
 		}
-		*/
-
-		FrameElement frame_element (cu);
-		s->set_prefix_for_assumption (cu);
-		stats_->count_update_F_time_start ();
-			
-		push_to_frame (frame_element, frame_level);
-
-	/*
-		if (forward_)
-		{
+	#ifdef __DEBUG__
+		print_uc(cu);
+	#endif
+		
+		push_to_frame (cu, frame_level);
+		
+		
+		if (forward_){
 			for (int i = frame_level-1; i >= 1; --i)
-			{
-				FrameElement new_frame_element = frame_element;
-				new_frame_element.set_propagated (true);
-				push_to_frame (new_frame_element, i);
-			}
-				
-		}
-		*/
-		
-				
-		stats_->count_update_F_time_end ();
-		
-	}
-
-	void Checker::try_reduce (Cube& cu, const State* s, const int frame_level, const int max_try)
-	{
-		Cube work_cu = cu;
-
-		const Cube& refer = s->prefix_for_assumption ();
-		hash_set<int> refer_set;
-		for (auto it = refer.begin(); it != refer.end(); ++it)
-			refer_set.insert (*it);
-		for (auto it = work_cu.begin(); it != work_cu.end(); ++it)
-		{
-			if (refer_set.find (*it) != refer_set.end ())
-			{
-				work_cu.erase (it);
-				it --;
-				continue;
-			}
-			stats_->count_remove_success_time_start();
-			if (remove_success (*it, work_cu, refer, s, frame_level-1, max_try))
-			{
-				work_cu.erase (it);
-				it --;
-			}
-			stats_->count_remove_success_time_end();
-		}
-		work_cu.insert (work_cu.begin(), refer.begin(), refer.end());
-		if (work_cu.size() <= cu.size())
-		{
-			cu = work_cu;
-			std::sort (cu.begin(), cu.end(), car::comp);
-		}		
-	}
-
-	bool Checker::remove_success (const int val, const Cube& cu, const Cube& refer, const State* s, const int frame_level, const int max_try)
-	{
-		Cube assumption = refer;
-		for (auto it = cu.begin(); it != cu.end(); ++it)
-		{
-			if ((*it) != val)
-				assumption.emplace_back (*it);
-		}
-		while (true)
-		{
-			if (!solve_with (assumption, frame_level))
-				return true;
-			if (max_try > 0)
-			{
-				State* tmp_state = new State (assumption);
-				State* new_state = get_new_state (tmp_state, false);
-				int new_frame_level = get_new_level (new_state, frame_level);
-				
-				if ((new_frame_level == -1) || (frame_level - new_frame_level > max_try))
-				{
-					delete tmp_state;
-					delete new_state;
-					return false;
-				}
-				assert (new_state != NULL);
-				if (!block (new_state, new_frame_level, max_try-1))
-				{
-					delete tmp_state;
-					delete new_state;
-					return false;
-				}
-					
-			}
-			else
-				break;
-		}
-		return false;
-	}
-
-	bool Checker::block (State* s, int frame_level, int max_try)
-	{
-		if (frame_level < 0)
-			return false;
-		
-		bool all_predeccessor_dead = true;
-		while (solve_with (s->s(), frame_level))
-		{
-			if (max_try > 0)
-			{
-				State* new_state = get_new_state (s, false);
-				int new_frame_level = get_new_level (new_state, frame_level);
-				
-				if ((new_frame_level == -1) || (frame_level - new_frame_level > max_try))
-				{
-					all_predeccessor_dead = false;
-					delete new_state;
-					return false;
-				}
-				
-				
-				bool res = block (new_state, new_frame_level, max_try-1);
-				if (forward_ && dead_ && !new_state->is_dead ())
-					all_predeccessor_dead = false;
-				delete new_state;
-				return res;
-			}
-			else
-			{
-				all_predeccessor_dead = false;
-				return false;
-			}
-				
-		}
-		if (forward_ && dead_ && all_predeccessor_dead){
-			Cube dead_uc;
-			if (is_dead (s, dead_uc, false)){
-				//cout << "dead: " << endl;
-				//car::print (dead_uc);
-				s->mark_dead ();
-				add_dead_to_solvers (dead_uc);
-				//if (car::imply (cu, dead_uc))
-				return true;
-			}
-		}
-
-		bool constraint = false;
-		Cube cu = solver_->get_conflict (s, forward_, !minimal_uc_, s->prefix_for_assumption (), constraint);
-		//pay attention to the size of cu!
-		if(cu.empty()){
-			report_safe ();
-			return;
+				push_to_frame (cu, i);
 		}
 		
-
-		FrameElement frame_element (cu);
-		s->set_prefix_for_assumption (cu);
-		stats_->count_update_F_time_start ();
-			
-		push_to_frame (frame_element, frame_level+1);
-
-				
-		stats_->count_update_F_time_end ();
-
-		return true;
+		
 	}
-
-	bool Checker::is_dead (const State* s, Cube& dead_uc, bool aggressive){
+	
+	bool Checker::is_dead (const State* s, Cube& dead_uc){
 	
 		Cube assumption;
 		
@@ -1165,18 +955,36 @@ namespace car
 			common = car::cube_intersect (deads_[deads_.size()-1], s->s());
 			
 		for (auto it = common.begin(); it != common.end(); ++it)
-			assumption.emplace_back (forward_ ? model_->prime (*it) : (*it));
+			assumption.push_back (forward_ ? model_->prime (*it) : (*it));
 			
 		for (auto it = s->s().begin(); it != s->s().end(); ++it)
-			assumption.emplace_back (forward_ ? model_->prime (*it) : (*it));
+			assumption.push_back (forward_ ? model_->prime (*it) : (*it));
+		
+		/*
+		Cube common;
+		if (deads_.size() > 0) 
+			common = car::cube_intersect (deads_[deads_.size()-1], s->s());
+		for (auto it = common.begin(); it != common.end(); ++it)
+			assumption.push_back (forward_ ? model_->prime (*it) : (*it));
+		//assumption.insert (assumption.begin (), common.begin (), common.end ());
+		*/
+		
+		
+		/*
+		if (!s->added_to_dead_solver ()){
+			dead_solver_->CARSolver::add_clause_from_cube (s->s());
+			s->set_added_to_dead_solver (true);
+		}
+		*/
 			
 		bool res = dead_solver_->solve_with_assumption (assumption);
+		//bool ret = lift_->solve_with_assumption (assumption);
+		// assert (res==ret);
 		if (!res){
 			bool constraint = false;
-			Cube refer;
-			dead_uc = dead_solver_->get_conflict (s, forward_, minimal_uc_, refer, constraint);
+			//dead_uc = dead_solver_->get_conflict (forward_, minimal_uc_, constraint);
+			dead_uc = dead_solver_->get_conflict (forward_, false, constraint);
 			//foward dead_cu MUST rule out those not in \@s //TO BE REUSED!
-			/*
 			if (forward_){
 				Cube tmp;
 				Cube &st = s->s();
@@ -1184,7 +992,7 @@ namespace car
 					for(auto it = dead_uc.begin(); it != dead_uc.end(); ++it){
 						int latch_start = model_->num_inputs()+1;
 						if (st[abs(*it)-latch_start] == *it)
-							tmp.emplace_back (*it);
+							tmp.push_back (*it);
 					}
 				}
 				else{
@@ -1193,21 +1001,54 @@ namespace car
 						tmp_set.insert (*it);
 					for (auto it = dead_uc.begin(); it != dead_uc.end(); ++it){
 						if (tmp_set.find (*it) != tmp_set.end())
-							tmp.emplace_back (*it);
+							tmp.push_back (*it);
 					}
 				}
 				dead_uc = tmp;
+				
+				/*
+				//shrink dead_uc
+				while (dead_uc.size() != assumption.size()){
+					assumption.clear ();
+					for (auto it = dead_uc.begin(); it != dead_uc.end(); ++it)
+						assumption.push_back (forward_ ? model_->prime (*it) : (*it));
+						
+					dead_solver_->CARSolver::add_clause_from_cube (dead_uc);
+					
+					res = dead_solver_->solve_with_assumption (assumption);
+					assert (!res);
+					
+					constraint = false;
+					Cube last_dead_uc = dead_uc;
+					dead_uc = dead_solver_->get_conflict (forward_, minimal_uc_, constraint);
+					//foward dead_cu MUST rule out those not in \@s //TO BE REUSED!
+					Cube tmp;
+					Cube &st = last_dead_uc;
+					hash_set<int> tmp_set;
+					for (auto it = st.begin (); it != st.end(); ++it)
+						tmp_set.insert (*it);
+					for (auto it = dead_uc.begin(); it != dead_uc.end(); ++it){
+						if (tmp_set.find (*it) != tmp_set.end())
+							tmp.push_back (*it);
+					}
+
+					dead_uc = tmp;
+				}
+				*/
 			}
-			*/
 			assert (!dead_uc.empty());
 		}
 		else{
-			
-			if (aggressive && !s->added_to_dead_solver ()){
+	#ifdef __DEBUG__
+		std::cout<<s<<" is not dead"<<std::endl;		
+	#endif
+			if (!s->added_to_dead_solver ()){
 				dead_solver_->CARSolver::add_clause_from_cube (s->s());
 				s->set_added_to_dead_solver (true);
+	#ifdef __DEBUG__
+		std::cout<<"add !s to dead solver, s is "<<s<<std::endl;		
+	#endif
 			}
-			
 		}
 		return !res;
 	}
@@ -1216,7 +1057,7 @@ namespace car
 		for (auto it = deads_.begin (); it != deads_.end(); ++it){
 			Clause cl;	
 			for (auto it2 = (*it).begin(); it2 != (*it).end (); ++it2){
-				cl.emplace_back (forward_? -(*it2) : -model_->prime(*it2));
+				cl.push_back (forward_? -(*it2) : -model_->prime(*it2));
 			}
 		
 			if (is_initial (*it)){
@@ -1227,20 +1068,20 @@ namespace car
 				if (true){//not consider initial state yet
 					Clause cl2;
 					
-					cl2.emplace_back (init_flag);
-					cl2.emplace_back (dead_flag);
-					cls.emplace_back (cl2);
+					cl2.push_back (init_flag);
+					cl2.push_back (dead_flag);
+					cls.push_back (cl2);
 					//create clauses for I <- inv_solver_->init_flag
 					for (auto it2 = init_->s().begin(); it2 != init_->s().end(); ++it2){
 						cl2.clear ();
-						cl2.emplace_back (init_flag);
-						cl2.emplace_back (*it2);
-						cls.emplace_back (cl2);
+						cl2.push_back (init_flag);
+						cl2.push_back (*it2);
+						cls.push_back (cl2);
 					}
 				}
 				//create clauses for !dead <-inv_solver->dead_flag
-				cl.emplace_back (dead_flag);
-				cls.emplace_back (cl);
+				cl.push_back (dead_flag);
+				cls.push_back (cl);
 		
 				for (auto it2 = cls.begin(); it2 != cls.end(); ++it2){
 					inv_solver_->add_clause (*it2);
@@ -1255,16 +1096,15 @@ namespace car
 		std::vector<Cube> tmp_deads;
 		for (auto it = deads_.begin (); it != deads_.end (); ++it){
 			if (!imply (*it, dead_uc))
-				tmp_deads.emplace_back (*it);
+				tmp_deads.push_back (*it);
 		}
 		deads_ = tmp_deads;
-		deads_.emplace_back (dead_uc);
-		deads_buffer_.emplace_back (dead_uc);
+		deads_.push_back (dead_uc);
 		//car::print (dead_uc);
 		
 		Clause cl;	
 		for (auto it = dead_uc.begin(); it != dead_uc.end (); ++it){
-			cl.emplace_back (forward_? -(*it) : -model_->prime(*it));
+			cl.push_back (forward_? -(*it) : -model_->prime(*it));
 		}
 		start_solver_->add_clause (cl);
 		
@@ -1273,21 +1113,21 @@ namespace car
 			std::vector<Clause> cls;
 			if (!dead_flag_){//not consider initial state yet
 				Clause cl2;
-				cl2.emplace_back (solver_->init_flag());
-				cl2.emplace_back (solver_->dead_flag());
-				cls.emplace_back (cl2);
+				cl2.push_back (solver_->init_flag());
+				cl2.push_back (solver_->dead_flag());
+				cls.push_back (cl2);
 				//create clauses for I <- solver_->init_flag()
 				for (auto it = init_->s().begin(); it != init_->s().end(); ++it){
 					cl2.clear ();
-					cl2.emplace_back (-solver_->init_flag());
-					cl2.emplace_back (*it);
-					cls.emplace_back (cl2);
+					cl2.push_back (-solver_->init_flag());
+					cl2.push_back (*it);
+					cls.push_back (cl2);
 				}
 				dead_flag_ = true;
 			}
 			//create clauses for !dead <-solver_->dead_flag()
-			cl.emplace_back (-solver_->dead_flag());
-			cls.emplace_back (cl);
+			cl.push_back (-solver_->dead_flag());
+			cls.push_back (cl);
 		
 			for (auto it = cls.begin(); it != cls.end(); ++it){
 				solver_->add_clause (*it);
@@ -1303,42 +1143,97 @@ namespace car
 			
 	}
 	
-	void Checker::push_to_frame (FrameElement& frame_element, const int frame_level)
-	{
-		Cube& cu = frame_element.cube ();
-		Frame& frame = (frame_level < int (F_.size ())) ? F_[frame_level] : frame_;
-		Frame& frame_buffer = (frame_level < int (F_buffer_.size ())) ? F_buffer_[frame_level] : frame_buffer_;
-		frame_buffer.emplace_back (frame_element);
+	
+	Cube Checker::recursive_block (State* s, int frame_level, Cube cu, Cube& next_cu){
+		
+		Cube common = s->s();
+		State *tmp_s = new State (common);
+		
+		while (true){
+			
+			bool res = solve_for_recursive (common, frame_level, common);
+			if (!res){
+				next_cu = get_uc(common);
+				delete tmp_s;
+				return cu;
+			}
+			State* new_state = get_new_state (tmp_s);
+			assert (new_state != NULL);
+			common = car::cube_intersect (common, new_state->s());
+			delete new_state;
+			tmp_s->set_s(common);
+			
+			if (common.empty()){
+				delete tmp_s;
+				return cu;
+			}
+			
+			if (is_initial (common)){
+				delete tmp_s;
+				return cu;
+			}
+			
+			if (solve_with (common, frame_level-1)){
+				delete tmp_s;
+				return cu;
+			}
+			
+			cu = get_uc (common); 
+			
+			
+		}
+		
+	}
+	
+	Cube Checker::get_uc (Cube &c) {
+		bool constraint = false;
+		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
+		    
+		//foward cu MUST rule out those not in \@s
+		Cube tmp;
+		//Cube &st = s->s();
+		for(auto it = cu.begin(); it != cu.end(); ++it){
+			if (car::is_in (*it, c, 0, c.size()-1))
+				tmp.push_back (*it);
+		}
+		cu = tmp;
+			
+		//pay attention to the size of cu!
+		if (cu.empty ())
+		{
+			report_safe ();
+			//return cu;
+		}
+		return cu;
+	}
 
+	
+	void Checker::push_to_frame (Cube& cu, const int frame_level)
+	{
+		
+		Frame& frame = (frame_level < int (F_.size ())) ? F_[frame_level] : frame_;
+		
+				
 		//To add \@ cu to \@ frame, there must be
 		//1. \@ cu does not imply any clause in \@ frame
 		//2. if a clause in \@ frame implies \@ cu, replace it by \@cu
 		Frame tmp_frame;
 		stats_->count_clause_contain_time_start ();
-		//int max_count = 500;
-		for (int i = 0; i < frame.size(); i ++)
+		for (int i = 0; i < frame.size (); i ++)
 		{   
-			/*
-			if (i < frame.size()-max_count)
-			{
-				tmp_frame.emplace_back (frame.index_of (i));
-				continue;
+			if (forward_){//for incremental
+				if (imply (cu, frame[i]))
+					return;
 			}
-			*/
-			
-			if (imply (cu, frame[i]))
-			{
-				return;
+			if (!imply (frame[i], cu))
+				tmp_frame.push_back (frame[i]);	
+			else {
+				
+			    stats_->count_clause_contain_success ();
 			}
-			else if (imply (frame[i], cu))
-			{
-				stats_->count_clause_contain_success ();
-			}
-			else
-				tmp_frame.emplace_back (frame.index_of (i));
 		} 
 		stats_->count_clause_contain_time_end ();
-		tmp_frame.emplace_back (frame_element);
+		tmp_frame.push_back (cu);
 		/*
 		//update comm
 		Cube& comm = (frame_level < int (comms_.size ())) ? comms_[frame_level] : comm_;
@@ -1355,35 +1250,30 @@ namespace car
 		
 		if (frame_level < int (F_.size ()))
 			solver_->add_clause_from_cube (cu, frame_level, forward_);
-		if (frame_level == int (F_.size ()))
+		else if (frame_level == int (F_.size ()))
 			start_solver_->add_clause_with_flag (cu);
-			
 	}
 	
 	
 	int Checker::get_new_level (const State *s, const int frame_level){
-	    for (int i = frame_level-1; i >= 0; i --){
-	        int j = F_[i].size()-1;
-	        for (; j >= 0; j --){
-				if (F_[i].propagated (j))
-					continue;
+	    for (int i = 0; i < frame_level; i ++){
+	        int j = 0;
+	        for (; j < F_[i].size (); j ++){
 	        	bool res = partial_state_ ? car::imply (s->s(), F_[i][j]) : s->imply (F_[i][j]);
 	            if (res)
-				{
-					if (!(i == 0 && forward_))
-						s->set_prefix_for_assumption (F_[i][j]);
-					return i;
-				}
+	                break;
 	        }
+	        if (j >= F_[i].size ())
+	            return i-1;
 	    }
-		return -1;
+		return frame_level - 1;
 	}
 	
 	bool Checker::tried_before (const State* st, const int frame_level) {
 		//check whether st is a dead state	
 		if (st->is_dead ()) 
 			return true;
-		for(auto it = deads_buffer_.begin(); it != deads_buffer_.end(); ++it){
+		for(auto it = deads_.begin(); it != deads_.end(); ++it){
 			bool res = partial_state_ ? car::imply (st->s(), *it) : st->imply (*it);
 			res = res && !is_initial (st->s());
 			if (res){
@@ -1394,16 +1284,15 @@ namespace car
 		//end of check
 		
 	    assert (frame_level >= 0);
-	    Frame &frame = (frame_level < F_buffer_.size ()) ? F_buffer_[frame_level] : frame_buffer_;
+	    Frame &frame = (frame_level < F_.size ()) ? F_[frame_level] : frame_;
 	    if (!partial_state_){
 	    	//assume that st is a full state
 	    	assert (const_cast<State*>(st)->size () == model_->num_latches ());
 	    
 	    	stats_->count_state_contain_time_start ();
-	    	for (int i = frame.size()-1; i >= 0; i --) {
+	    	for (int i = 0; i < frame.size (); i ++) {
 	        	if (st->imply (frame[i])) {
 	            	stats_->count_state_contain_time_end ();
-					st->set_prefix_for_assumption (frame[i]);
 	            	return true;
 	        	} 
 	    	}
@@ -1411,10 +1300,9 @@ namespace car
 	    }
 	    else{
 	    	stats_->count_state_contain_time_start ();
-	    	for (int i = frame.size()-1; i >= 0; i --) {
+	    	for (int i = 0; i < frame.size (); i ++) {
 	        	if (car::imply (st->s(), frame[i])) {
 	            	stats_->count_state_contain_time_end ();
-					st->set_prefix_for_assumption (frame[i]);
 	            	return true;
 	        	} 
 	    	}
@@ -1461,7 +1349,7 @@ namespace car
 	    if(!forward_){
 	    	for (int i = 0; i < cu.size() ; ++ i) {
 	    		if (st[abs(cu[i])-model_->num_inputs ()-1] == cu[i]) {
-	    			tmp.emplace_back (cu[i]);
+	    			tmp.push_back (cu[i]);
 	    		}
 	    	}
 	    	res = tmp;
@@ -1490,23 +1378,23 @@ namespace car
 	    int j = 0;
 	    for (int i = 0; i < st.size (); ++ i) {
 	        if (j >= cu.size ()) 
-	            tmp_st.emplace_back (st[i]);
+	            tmp_st.push_back (st[i]);
 	        else {
 	            if (abs(st[i]) < abs (cu[j])) {
-	                tmp.emplace_back (st[i]);
+	                tmp.push_back (st[i]);
 	            }
 	            else {
 	                if (st[i] != cu[j])
-	                    tmp.emplace_back (st[i]);
+	                    tmp.push_back (st[i]);
 	                else
-	                    tmp_st.emplace_back (st[i]);
+	                    tmp_st.push_back (st[i]);
 	                ++ j;
 	            }
 	        }
 	    }
 	    
 	    for (int i = 0; i < tmp.size (); ++ i)
-	        tmp_st.emplace_back (tmp[i]);
+	        tmp_st.push_back (tmp[i]);
 	    st = tmp_st;
 	    */
 	    //if(forward_)
@@ -1527,13 +1415,13 @@ namespace car
 	    }
 	    for (int i = 0; i < cube.size (); ++ i) {
 	        if (st[abs(cube[i])-model_->num_inputs ()-1] == cube[i]) 
-	    		tmp_st.emplace_back (cube[i]);
+	    		tmp_st.push_back (cube[i]);
 	    	else
-	    	    tmp.emplace_back (-cube[i]);
+	    	    tmp.push_back (-cube[i]);
 	    }
 	    
 	    for (int i = 0; i < tmp.size (); ++ i)
-	        tmp_st.emplace_back (tmp[i]);
+	        tmp_st.push_back (tmp[i]);
 	        
 	    st = tmp_st;
 	    //cube = st;
@@ -1547,7 +1435,7 @@ namespace car
 	    tmp_comm.reserve (comm.size ());
 	    for (int i = 0; i < comm.size (); ++ i) {
 	        if (st[abs(comm[i])-model_->num_inputs ()-1] == comm[i]) 
-	    		tmp_comm.emplace_back (comm[i]);
+	    		tmp_comm.push_back (comm[i]);
 	    }
             st.insert (st.begin (), tmp_comm.begin(), tmp_comm.end ());
 	*/
@@ -1559,6 +1447,33 @@ namespace car
 			init_->print_evidence (forward_, out);
 		else
 			last_->print_evidence (forward_, out);
+	}
+
+	void Checker::check_evidence () {
+		//set assumption, containing start_s's inputs and latches, together with the prime of the next state
+		State* start_s = init_;
+		int count = 1;
+		while(start_s->next() != NULL){
+			Cube next_s = (start_s->next())->s();
+			Cube assumption;
+			assumption.insert(assumption.end(),start_s->inputs_vec().begin(),start_s->inputs_vec().end());
+			assumption.insert(assumption.end(),start_s->s().begin(),start_s->s().end());
+			for (int i = 0; i < next_s.size();++i){
+				assumption.emplace_back(model_->prime(next_s[i]));
+			}
+			bool res = lift_->solve_with_assumption(assumption);
+			assert(res);
+			start_s = start_s->next();
+	#ifdef __DEBUG__
+		std::cout<<count++<<std::endl;
+	#endif
+		}
+		Cube assumption;
+		assumption.push_back(bad_);
+		assumption.insert(assumption.end(),start_s->inputs_vec().begin(),start_s->inputs_vec().end());
+		assumption.insert(assumption.end(),start_s->s().begin(),start_s->s().end());
+		bool res = lift_->solve_with_assumption(assumption);
+		assert(res);	
 	}
 		
 }

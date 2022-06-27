@@ -28,55 +28,12 @@
  #include "data_structure.h"
  #include <string.h>
  #include <assert.h>
- #include <sstream>
  using namespace std;
+ #define __DEBUG__
+
  
  namespace car
  {
-	std::string FrameElement::to_string ()
-	{
-		std::ostringstream os;
-   		os << *this;
-   		return os.str();
-	}
-	std::string Frame::to_string ()
-	{
-		string res = "";
-		for (auto element : cubes_)
-			res += element.to_string ();
-		return res;
-	}
-	std::ostream& operator <<(std::ostream& os, const FrameElement& element)
-	{
-		for (auto id : element.cube())
-		{
-			int val = (id > 0) ? (id*2) : ((-id)*2+1);
-			os << val << " ";
-		}
-			
-		os << std::endl;
-		return os;
-	}
-	std::ostream& operator <<(std::ostream& os, const Frame& frame)
-	{
-		for (auto frame_element : frame.cubes())
-			os << frame_element;
-		return os;
-	}
-	std::ostream& operator <<(std::ostream& os, const Fsequence& F)
-	{
-		for (int i = 1; i < F.size(); ++i)
-			os << "Frame " << i << ":" << std::endl << F[i];
-		return os;
-	}
-
-	std::ostream& operator <<(std::ostream& os, const State& s)
-	{
-		for (auto id : s.s())
-			os << id << " ";
-		os << std::endl;
-		return os;
-	}
  
     State::State (const State *s, const Assignment& inputs, const Assignment& latches, const bool forward, const bool last) 
  	{
@@ -144,6 +101,12 @@
 	    	while (nx->next() != NULL)
 	    	{
 	    		nx = nx->next ();
+	#ifdef __DEBUG__
+		std::cout<<"print evidence: "<<nx<<std::endl;
+		print_uc(nx->s());
+		std::cout<<"current depth: "<<nx->depth()<<std::endl;
+		// std::cout<<"current input: "<<nx->inputs_vec()[0]<<std::endl;
+	#endif
 	    		out << nx->inputs () << endl;
 	    	}
 	    }

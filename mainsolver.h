@@ -37,7 +37,7 @@ namespace car{
 class MainSolver : public CARSolver 
 {
 	public:
-		MainSolver (Model*, Statistics* stats, int SAT_type, const bool verbose = false);
+		MainSolver (Model*, Statistics* stats, const bool verbose = false);
 		~MainSolver (){}
 		
 		//public funcitons
@@ -55,7 +55,7 @@ class MainSolver : public CARSolver
 		    set_assumption (st, p);
 		    if (verbose_)
 		    	std::cout << "MainSolver::";
-		    return solve_assumption (SAT_type_);
+		    return solve_assumption ();
 		}
 		
 		inline bool solve_with_assumption (const Assignment& st)
@@ -63,19 +63,14 @@ class MainSolver : public CARSolver
 		    set_assumption (st);
 		    if (verbose_)
 		    	std::cout << "MainSolver::";
-		    return solve_assumption (SAT_type_);
+		    return solve_assumption ();
 		}
 		
 		inline bool solve_with_assumption ()
 		{
 			if (verbose_)
 		    	std::cout << "MainSolver::";
-		    return solve_assumption (SAT_type_);
-		}
-
-		inline bool propagate_solve_with_assumption ()
-		{
-		    return solve_assumption (7);
+		    return solve_assumption ();
 		}
 		
 		Assignment get_state (const bool forward = true, const bool partial = false);
@@ -83,12 +78,12 @@ class MainSolver : public CARSolver
 		//this version is used for bad check only
 		Cube get_conflict (const int bad,const bool minimal);
 		Cube get_conflict (const bool forward, const bool minimal, bool& constraint);
-		Cube get_conflict (const State* s, const bool forward, const bool minimal, const Cube& refer, bool& constraint);
-		Cube get_conflict (const Cube& s, const bool forward, const bool minimal, const Cube& refer, bool& constraint);
 		
 		void add_new_frame (const Frame& frame, const int frame_level, const bool forward);
 		//overload
 		void add_clause_from_cube (const Cube& cu, const int frame_level, const bool forward_);
+		
+		bool solve_with_assumption_for_temporary (Cube& s, int frame_level, bool forward, Cube& tmp_block);
 		
 		inline void update_constraint (Cube& cu)
 		{
@@ -112,6 +107,8 @@ class MainSolver : public CARSolver
 		int init_flag_, dead_flag_;
 		
 		Model* model_;
+		
+		Statistics* stats_;
 		
 		//bool verbose_;
 		

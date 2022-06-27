@@ -31,15 +31,11 @@
 namespace car {
     class StartSolver : public CARSolver {
     public:
-        StartSolver (const Model* m, Statistics* stats,const int bad, const bool forward, const bool verbose = false)
+        StartSolver (const Model* m, const int bad, const bool forward, const bool verbose = false)
         {
             verbose_ = verbose;
-            if (!forward){
-                 add_cube (const_cast<Model*>(m)->init ());
-                 for (int i = 0; i < const_cast<Model*>(m)->bad_start (); i ++)
-                    add_clause (const_cast<Model*>(m)->element (i));    
-            }
-               
+            if (!forward)
+                add_cube (const_cast<Model*>(m)->init ());
             else
             {
                 for (int i = 0; i < const_cast<Model*>(m)->latches_start (); i ++)
@@ -50,7 +46,6 @@ namespace car {
             forward_ = forward;
             max_id_ = const_cast<Model*>(m)->max_id () + 1;
             flag_ = max_id_;
-            stats_ = stats;
         }
         ~StartSolver () {}
         
@@ -58,7 +53,7 @@ namespace car {
         {
         	if (verbose_)
         		std::cout << "StartSolver::";
-        	return solve_assumption (3);
+        	return solve_assumption ();
         }
         
         inline void reset ()
@@ -71,8 +66,6 @@ namespace car {
             }
             assumption_pop ();
             assumption_push (-flag_);
-            //add_clause (-flag_);
-            //simplify ();
             assumption_push (++flag_);
         }
         inline void add_clause_with_flag (const Cube& cu)

@@ -27,16 +27,14 @@
 #include <iostream>
 #include <assert.h>
 #include <vector>
-#include <algorithm>
 
 using namespace std;
 
 namespace car{
 
-	Model::Model (aiger* aig, const bool forward, const bool verbose)
+	Model::Model (aiger* aig, const bool verbose)
 	{
 	    verbose_ = verbose;
-		forward_ = forward;
 	//According to aiger format, inputs should be [1 ... num_inputs_]
 	//and latches should be [num_inputs+1 ... num_latches+num_inputs]]
 		num_inputs_ = aig->num_inputs;
@@ -44,7 +42,6 @@ namespace car{
 		num_ands_ = aig->num_ands;
 		num_constraints_ = aig->num_constraints;
 		num_outputs_ = aig->num_outputs;
-		num_bad_ = aig->num_bad;
 		
 		//preserve two more ids for TRUE (max_id_ - 1) and FALSE (max_id_)
 		max_id_ = aig->maxvar+2;
@@ -55,7 +52,6 @@ namespace car{
 		
 		set_constraints (aig);
 		set_outputs (aig);
-		set_bads (aig);
 		
 		set_init (aig);
 		
@@ -132,13 +128,7 @@ namespace car{
 		gates.resize (max_id_+1, 0);
 		//create clauses for constraints
 		collect_necessary_gates (aig, aig->constraints, aig->num_constraints, exist_gates, gates);
-		for (int i=0; i<constraints_.size();i++)
-		{
-			Clause temp_constrain;
-			temp_constrain.push_back(-constraints_[i]);
-			cls_.push_back(temp_constrain);
-		}
-
+		
 		for (vector<unsigned>::iterator it = gates.begin (); it != gates.end (); it ++)
 		{
 		    if (*it == 0) continue; 
@@ -146,62 +136,7 @@ namespace car{
 			assert (aa != NULL);
 			add_clauses_from_gate (aa);
 		}
-
-		//create constraints from reverse_next_map_
-		//only for forward CAR
-		//if previous (i) > 1, then every element in previous (i) must have the same value
-		if (forward_)
-		{
-			int start = cls_.size();
-			int init_flag = ++max_id_;
-			bool find = false;
-			for (auto it = reverse_next_map_.begin(); it != reverse_next_map_.end (); ++it)
-			{
-				if ((it->second).size() > 1)
-				{
-					//cout << it->first << "===>";
-					//car::print (it->second);
-					vector<Clause> cls = create_constraint_from_previous (it->second, init_flag);
-					for (int i = 0; i < cls.size(); ++i)
-						cls_.emplace_back (cls[i]);
-					find = true;
-				}
-			
-			}
-			if (find)
-			{
-				//cannot block initial state
-				for (auto it = init_.begin(); it != init_.end(); ++it)
-				{
-					Clause cl;
-					cl.emplace_back (-init_flag);
-					cl.emplace_back (*it);
-					cls_.emplace_back (cl);
-				}
-			}
-			/*
-			cout << "create constraints" << endl;
-			for (int i = start; i < cls_.size(); ++i)
-			{
-				car::print (cls_[i]);
-			}
-			*/
-		}
 		
-		
-		set_bad_start ();
-		
-		//create clauses for outputs
-		gates.resize (max_id_+1, 0);
-		collect_necessary_gates (aig, aig->bad, aig->num_bad, exist_gates, gates);
-		
-		for (vector<unsigned>::iterator it = gates.begin (); it != gates.end (); it ++)
-		{
-		    if (*it == 0) continue;
-			aiger_and* aa = aiger_is_and (const_cast<aiger*>(aig), *it);
-			assert (aa != NULL);
-			add_clauses_from_gate (aa);
-		}
 		
 		set_outputs_start ();
 		
@@ -229,39 +164,10 @@ namespace car{
 			assert (aa != NULL);
 			add_clauses_from_gate (aa);
 		}
-
-
 		
 		//create clauses for true and false
 		cls_.push_back (clause (true_));
 		cls_.push_back (clause (-false_));
-
-
-	}
-
-	std::vector<Clause> Model::create_constraint_from_previous (std::vector<int>& elements, int init_flag)
-	{
-		int flag1 = ++max_id_;
-		int flag2 = ++max_id_;
-		vector<Clause> res;
-		Clause cl;
-		cl.emplace_back (init_flag);
-		cl.emplace_back (flag1);
-		cl.emplace_back (flag2);
-
-		res.emplace_back (cl);
-		for (auto it = elements.begin(); it != elements.end (); ++it)
-		{
-			cl.clear ();
-			cl.emplace_back (-flag1);
-			cl.emplace_back (*it);
-			res.emplace_back (cl);
-			cl.clear ();
-			cl.emplace_back (-flag2);
-			cl.emplace_back (-(*it));
-			res.emplace_back (cl);
-		}
-		return res;
 	}
 	
 	
@@ -346,7 +252,7 @@ namespace car{
 				init_.push_back (-(num_inputs_+1+i));
 			else if (aig->latches[i].reset == 1)
 				init_.push_back (num_inputs_+1+i);
-			else if (aig->latches[i].reset != aig->latches[i].lit)
+			else
 			{
 				cout << "Error setting initial state!" << endl;
 				exit (0);
@@ -369,15 +275,6 @@ namespace car{
 		{
 			int id = (int) aig->outputs[i].lit;
 			outputs_.push_back ((id%2 == 0) ? (id/2) : -(id/2));
-		}
-	}
-
-	void Model::set_bads (const aiger* aig)
-	{
-		for (int i = 0; i < aig->num_bad; i ++)
-		{
-			int id = (int) aig->bad[i].lit;
-			bads_.push_back ((id%2 == 0) ? (id/2) : -(id/2));
 		}
 	}
 	
@@ -406,48 +303,6 @@ namespace car{
 		}
 		return res;
 	}
-
-	void Model::shrink_to_previous_vars (const Cube& s, Cube& uc, bool& constraint)
-	{
-		Cube tmp;
-		constraint = true;
-		for (int i = 0; i < uc.size (); i ++)
-		{
-		    vector<int> ids = previous (abs (uc[i]));
-			if (ids.empty ())
-			{
-				constraint = false;
-			    continue;
-			}
-			else
-			{
-				int j = 0;
-			    for (; j < ids.size (); j ++)
-				{
-					int id = (uc[i] > 0) ? ids[j] : (-ids[j]);
-					if (std::find (s.begin(), s.end(), id) != s.end())
-					{
-						tmp.push_back (id);
-						break;
-					}
-				}
-			    if (j >= ids.size())
-				{
-					cout << "shrink_to_previous_vars error" << endl;
-					exit (0);
-				} 
-			}
-				
-		}
-		//cout << "shrink_to_previous_vars: " << endl;
-		//cout << "before: ";
-		//car::print (uc);
-		
-		uc = tmp;
-
-		//cout << "after: ";
-		//car::print (uc);
-	}
 	
 	void Model::shrink_to_previous_vars (Cube& uc, bool& constraint)
 	{
@@ -470,6 +325,17 @@ namespace car{
 		}
 		uc = tmp;
 	}
+
+	void Model::shrink_to_state_vars (Cube& uc)
+	{
+		Cube tmp;
+		for (int i = 0; i < uc.size (); i ++)
+		{
+			if (state_var (abs (uc[i])))
+				tmp.push_back (uc[i]);
+		}
+		uc = tmp;
+	}
 	
 	void Model::shrink_to_latch_vars (Cube& uc, bool& constraint)
 	{
@@ -485,15 +351,15 @@ namespace car{
 		uc = tmp;
 	}
 
-	void Model::shrink_to_input_vars (Cube& uc)
+	Cube Model::shrink_to_input_vars (Assignment& st)
 	{
 		Cube tmp;
-		for (int i = 0; i < uc.size (); i ++)
+		for (int i = 0; i < st.size (); i ++)
 		{
-			if (input_var (abs (uc[i])))
-				tmp.push_back (uc[i]);
+			if (input_var (abs (st[i])))
+				tmp.push_back (st[i]);
 		}
-		uc = tmp;
+		return tmp;
 	}
 	
 	//propagate the model based on \@ assump, and the results are stored in \@ res

@@ -59,7 +59,7 @@ namespace car
 	class Checker 
 	{
 	public:
-		Checker (Model* model, int max_try, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool partial = false, bool propagate = false, bool begin = false, bool end = true, bool inter = true, bool rotate = false, bool verbose = false, bool minimal_uc = false,bool dead = false);
+		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool partial = false, bool propagate = false, bool begin = false, bool end = true, bool inter = true, bool rotate = false, bool verbose = false, bool minimal_uc = false,bool dead = false);
 		~Checker ();
 		
 		bool check (std::ofstream&);
@@ -71,6 +71,13 @@ namespace car
 		    }
 		    std::cout << std::endl;
 		}
+		inline int print_B_sizes () {
+			int sum = 0;
+		    for (int i = 0; i < B_.size (); i ++) {
+		        sum += B_[i].size();
+		    }
+		    return sum;
+		}
 	protected:
 		//flags 
 		bool forward_;
@@ -80,7 +87,6 @@ namespace car
 		bool verbose_;
 		bool propagate_;
 		bool dead_;
-		int max_try_;
 		
 		//new flags for reorder and state enumeration
 		bool begin_, end_;  // for state enumeration
@@ -101,12 +107,11 @@ namespace car
 		Model* model_;
 		MainSolver *solver_;
 		MainSolver *lift_, *dead_solver_;
-		bool test_inv (Cube &cu);
 		StartSolver *start_solver_;
 		InvSolver *inv_solver_;
-		Fsequence F_, F_buffer_;
+		Fsequence F_;
 		Bsequence B_;
-		Frame frame_, frame_buffer_;   //to store the frame willing to be added in F_ in one step
+		Frame frame_;   //to store the frame willing to be added in F_ in one step
 		
 	    
 	    void get_previous (const Assignment& st, const int frame_level, std::vector<int>& res);
@@ -118,7 +123,7 @@ namespace car
 	    std::vector<State*> states_;
 	    std::vector<Cube> comms_;
 	    Cube comm_; 
-	    std::vector<Cube> deads_, deads_buffer_;
+	    std::vector<Cube> deads_;
 	    bool dead_flag_;
 		
 		bool safe_reported_;  //true means ready to return SAFE
@@ -136,15 +141,13 @@ namespace car
 		void inv_solver_add_constraint_and (const int frame_level);
 		void inv_solver_release_constraint_and ();
 		bool solve_with (const Cube &cu, const int frame_level);
-		bool solve_with (State* s, const int frame_level);
-		bool solver_solve_with_assumption (State* s, const int frame_level, bool forward);
-		State* get_new_state (const State *s, bool aggressive = true);
+		State* get_new_state (const State *s);
 		void extend_F_sequence ();
-		void update_F_sequence (const State* s, const int frame_level, const int max_try = MAX_TRY);
+		void update_F_sequence (const State* s, const int frame_level);
 		void update_frame_by_relative (const State* s, const int frame_level);
 		void update_B_sequence (State* s);
 		int get_new_level (const State *s, const int frame_level);
-		void push_to_frame (FrameElement& element, const int frame_level);
+		void push_to_frame (Cube& cu, const int frame_level);
 		bool tried_before (const State* s, const int frame_level);
 		
 		
@@ -157,36 +160,28 @@ namespace car
 		void destroy_states ();
 		bool car_check ();
 		
-		void get_partial (Assignment& st, const State* s=NULL, bool aggressive = true);
+		void get_partial (Assignment& st, const State* s=NULL);
 		void add_dead_to_solvers (Cube& dead_uc);
-		bool is_dead (const State* s, Cube& dead_uc, bool aggressive = true);
+		bool is_dead (const State* s, Cube& dead_uc);
 		
+		bool solve_for_recursive (Cube& s, int frame_level, Cube& tmp_block);
+		Cube recursive_block (State* s, int frame_level, Cube cu, Cube& next_cu);
+		Cube get_uc (Cube& c);
 		
 		//propagation
 		bool propagate ();
 		bool propagate (int n);
 		bool propagate (Cube& cu, int n);
-		bool block (Cube& cu, int n);
 		
 		void add_dead_to_inv_solver ();
 
-		void set_state_prefix_for_assumption (State* s, Frame& frame);
-
-		void try_reduce (Cube& cu, const State* s, const int frame_level, const int max_try);
-		bool remove_success (const int val, const Cube& cu, const Cube& refer, const State* s, const int frame_level, const int max_try);
-		bool block (State* s, int frame_level, int max_try);
+		void check_evidence ();
 				
 		
 		//inline functions
-		inline void clear_buffers () 
-		{
-			deads_buffer_.clear();
-			for (int i = 0; i < F_buffer_.size(); ++i)
-				F_buffer_[i].clear ();
-		}
 		inline bool is_initial (Cube& c){return init_->imply (c);}
 		inline void create_inv_solver (){
-			inv_solver_ = new InvSolver (model_, stats_, verbose_);
+			inv_solver_ = new InvSolver (model_, verbose_);
 			add_dead_to_inv_solver ();
 		}
 		inline void delete_inv_solver (){
@@ -202,14 +197,12 @@ namespace car
 		
 		inline void reset_start_solver (){
 	        assert (start_solver_ != NULL);
-	        start_solver_->reset ();		
-			
+	        start_solver_->reset ();
 	        if (propagate_){
 	        	for (int i = 0; i < frame_.size(); ++i)
 	        		start_solver_->add_clause_with_flag (frame_[i]);
+	        	
 	        }
-			
-
 	    }
 	    
 	    inline bool reconstruct_start_solver_required () {
@@ -303,9 +296,8 @@ namespace car
 	    
 	    inline void clear_frame (){
 	        frame_.clear ();
-			frame_buffer_.clear ();
 	        cube_.clear ();
-			comm_.clear ();
+		comm_.clear ();
 	        for (int i = 0; i < frame_.size (); i ++)
 	        	start_solver_->add_clause_with_flag (frame_[i]);
 	    }
@@ -338,6 +330,33 @@ namespace car
 	        print_F ();
 	        print_B ();
 	    }
+		
+		inline int print_B_num (){
+	        int sum = 0;
+	        for (int i = 0; i < B_.size (); i ++){
+	            sum += B_[i].size();
+	        }
+	        return sum;
+	    }
+
+		inline int print_dead_num (){
+	        int sum = 0;
+	        for (int i = 0; i < B_.size (); ++ i) {
+			for (int j = 0; j < B_[i].size (); ++ j){
+				if (B_[i][j]->is_dead()) sum++;
+			}		
+			}
+	        return sum;
+	    }
+
+		void print_uc (Cube& uc){
+	        
+	        for (int i = 0; i < uc.size (); i ++){
+	            std::cout<<uc[i]<<" ";
+	        }
+	        std::cout<<std::endl;
+	    }
+
 	    
 	};
 }

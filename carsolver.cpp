@@ -23,14 +23,11 @@
  */
  
 #include "carsolver.h"
-#include "utility.h"
 #include <iostream>
 #include <vector>
-#include <set>
-#include <algorithm>    
-#include <fstream>      
-#include <cmath>  
-#include "hash_map.h"   
+#include <algorithm>    //zhang xiaou add this code
+#include <fstream>      //zhang xiaou add this code
+#include <cmath>      //zhang xiaou add this code
 using namespace std;
 
 #ifndef ENABLE_PICOSAT  
@@ -122,11 +119,9 @@ namespace car
             return var(l) + 1;
     }
  	
- 	bool CARSolver::solve_assumption (int SAT_type)
+ 	bool CARSolver::solve_assumption ()
 	{
-		stats_->new_count_SAT_time_start();
 		lbool ret = solveLimited (assumption_);
-		stats_->new_count_SAT_time_end(SAT_type);
 		/*
 		if (verbose_)
 		{
@@ -160,12 +155,11 @@ namespace car
 	 //zhang xiaoyu code begins
 
     //  push a new reason/UC to the back of assumption_
-	void CARSolver::update_assumption(const std::vector<int>& new_reason)
+	void CARSolver::update_assumption(std::vector<int> new_reason)
 	{
-		//for(int i=0;i<new_reason.size();i++)
-		for (auto it = new_reason.begin();it != new_reason.end();++it)
+		for(int i=0;i<new_reason.size();i++)
 		{
-			assumption_push(*it);
+			assumption_push(new_reason[i]);
 		}
 	}
 
@@ -187,75 +181,7 @@ namespace car
     	return reason;
 	}
     //count_main_solver_SAT_time_end 
-	//compute MUS by binary search
-	// void CARSolver::get_mus (std::vector<std::vector<int> >& muses, std::vector<int>& res)
-	// {
-	// 	if (muses.empty ())
-	// 		return;
-	// 	std::vector<int> tmp_mus = muses.back ();
-	// 	muses.pop_back ();
-		
-	// 	if (tmp_mus.size () == 1)
-	// 		res.emplace_back (tmp_mus[0]);
-	// 	else
-	// 	{
-	// 		std::vector<int> tmp_mus_1 (tmp_mus.begin(), tmp_mus.begin()+(tmp_mus.size()/2));
-	// 		std::vector<int> tmp_mus_2 (tmp_mus.begin()+(tmp_mus.size()/2), tmp_mus.end());
-	// 		if (!SAT (tmp_mus_1, muses))
-	// 		{
-	// 			muses.emplace_back (tmp_mus_1);
-	// 			std::vector<int> reason = get_solver_uc();
-	// 			remove_from (muses, reason);
-	// 		}
-	// 		else if (!SAT (tmp_mus_2, muses))
-	// 		{
-	// 			muses.emplace_back (tmp_mus_2);
-	// 			std::vector<int> reason = get_solver_uc();
-	// 			remove_from (muses, reason);
-	// 		}
-	// 		else
-	// 		{
-	// 			muses.emplace_back (tmp_mus_1);
-	// 			muses.emplace_back (tmp_mus_2);
-	// 		}
-	// 	}	
-	// 	get_mus (muses, res);
-	// }
-	// //SAT call with all elements in \@mus and \@muses being the assumptions
-	// bool CARSolver::SAT (std::vector<int>& mus, std::vector<std::vector<int> >& muses)
-	// {
-	// 	clear_assumption(); 
-
-	// 	update_assumption(mus);
-
-	// 	for (auto it = muses.begin(); it != muses.end(); ++it)
-	// 	{
-	// 		update_assumption(*it);
-	// 	}
-
-	// 	bool res = solve_assumption(6);
-	// 	return res;
-
-	// }
-	// //remove the elements in \@muses those not in \@uc
-	// void CARSolver::remove_from (std::vector<std::vector<int> >& muses, std::vector<int>& uc)
-	// {
-	// 	//hash_map<int> uc_map (uc.begin(), uc.end());
-	// 	std::set<int> uc_map (uc.begin(), uc.end());
-	// 	for (auto it = muses.begin(); it != muses.end(); ++it)
-	// 	{
-	// 		std::vector<int>& mus = *it;
-	// 		std::vector<int> tmp_mus;
-	// 		for (auto it2 = mus.begin(); it2 != mus.end(); ++it2)
-	// 		{
-	// 			if (uc_map.find (*it2) != uc_map.end ())
-	// 				tmp_mus.emplace_back (*it2);
-	// 		}
-	// 		mus = tmp_mus;
-	// 	}
-	// }
-
-	std::vector<int> CARSolver::get_mus(const std::vector<int>& m_reason)
+	std::vector<int> CARSolver::get_mus(std::vector<int> m_reason)
 	{
 		std::vector<int> mus;                       //mus core
 		//int long_flag = 216;
@@ -279,7 +205,7 @@ namespace car
 			update_assumption(mus);    //merge mus core with assumption
 
             //stats_->count_get_uc_solver_SAT_time_start ();
-			bool res = solve_assumption(6);
+			bool res = solve_assumption();
 			//stats_->count_get_uc_solver_SAT_time_end ();
 			for(int i=0;i<mus.size();i++)
 			{
@@ -310,62 +236,8 @@ namespace car
 		{
 			mus_reason.push_back(lit_id (assumption_[i]));
 		}
-        return mus_reason;
+        return mus_reason;   
 	}
-	
-	std::vector<int> CARSolver::get_mus(const std::vector<int>& m_reason, const std::vector<int>& refer, const int minimal_skip_id)
-	{
-		if (refer.empty ())
-		{
-			return get_mus (m_reason);
-		}
-		else
-		{
-			int sat_count = 0;
-			hash_set<int> refer_map;
-			vector<int> mus_reason = m_reason;
-			for (auto it = refer.begin(); it != refer.end(); ++it)
-				refer_map.insert (*it);
-			for (auto it = mus_reason.begin(); it != mus_reason.end(); ++it)
-			{
-				if (refer_map.find (*it) != refer_map.end ())
-				{
-					mus_reason.erase (it);
-					it --;
-					continue;
-				}	
-				if (abs(*it) > minimal_skip_id)
-					continue;
-				sat_count ++;
-				if (!is_mus_element (*it, mus_reason, refer))
-				{
-					mus_reason.erase (it);
-					it --;
-					
-				}
-					
-			}
-			mus_reason.insert (mus_reason.begin(), refer.begin(), refer.end ());
-			//cout << "invoke " << sat_count << " SAT calls" << endl;
-			return mus_reason;
-		}
-		   
-	}
-	
-	bool CARSolver::is_mus_element (const int id, const std::vector<int>& mus_reason, const std::vector<int>& refer)
-	{
-		std::vector<int> assumption = refer;
-		for (auto it = mus_reason.begin(); it != mus_reason.end(); ++it)
-		{
-			if (*it != id)
-				assumption.push_back (*it);
-		}
-		clear_assumption ();
-		update_assumption (assumption);
-		bool res = solve_assumption (6);
-		return res;
-	}
-
 	//return the UC from SAT solver when it provides UNSAT
  	std::vector<int> CARSolver::get_uc (bool minimal)
  	{
@@ -381,76 +253,9 @@ namespace car
     	}
 		//if (verbose_)
 			//cout << endl;
-		if(minimal)
-		{
-			#ifdef __DEBUG__
-				cout << "before MUS: " << reason.size() << endl;
-				car::print (reason);
-			#endif
-			//std::vector<std::vector<int> > muses;
-			//muses.push_back(reason);
-			std::vector<int> res = get_mus(reason);
-			//get_mus(muses,res);
-			#ifdef __DEBUG__
-				cout << "after MUS " << res.size() << endl;
-				car::print (res);
-			#endif
-			return  res;
-		}
+		if(minimal) return get_mus(reason);
     	else return reason;
   	}
-	
-
-	//return the UC from SAT solver when it provides UNSAT
- 	std::vector<int> CARSolver::get_uc (bool minimal, const std::vector<int>& refer, const int minimal_skip_id)
- 	{
- 		std::vector<int> reason;
-		//if (verbose_)
-			//cout << "get uc: \n";
- 		for (int k = 0; k < conflict.size(); k++) 
- 		{
-        	Lit l = conflict[k];
-        	reason.push_back (-lit_id (l));
-			//if (verbose_)
-				//cout << -lit_id (l) << ", ";
-    	}
-		//if (verbose_)
-			//cout << endl;
-		if (reason.empty ())
-			return reason;
-		if(minimal)
-		{
-			#ifdef __DEBUG__
-				cout << "before MUS: " << reason.size() << endl;
-				car::print (reason);
-				cout << "refer: " << endl;
-				car::print (refer);
-			#endif
-			//std::vector<std::vector<int> > muses;
-			//muses.push_back(reason);
-			std::vector<int> res = get_mus(reason, refer, minimal_skip_id);
-			if (res.size() > reason.size())
-			{
-				/*
-				cout << "before MUS: " << reason.size() << endl;
-				car::print (reason);
-				cout << "refer: " << endl;
-				car::print (refer);
-				cout << "after MUS " << res.size() << endl;
-				car::print (res);
-				*/
-				res = reason;
-			}
-			//get_mus(muses,res);
-			#ifdef __DEBUG__
-				cout << "after MUS " << res.size() << endl;
-				car::print (res);
-			#endif
-			return  res;
-		}
-    	else return reason;
-  	}
-	
 	
 	void CARSolver::add_clause (std::vector<int>& v)
  	{

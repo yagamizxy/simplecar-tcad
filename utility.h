@@ -56,8 +56,6 @@ inline std::vector<int> cube_intersect (const std::vector<int>& v1, const std::v
 	return vec_intersect (v1, v2);
 }
 
-std::vector<int> vec_merge (const std::vector<int>& v1, const std::vector<int>& v2);
-
 bool comp (int i, int j);
 
 }

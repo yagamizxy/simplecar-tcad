@@ -9,10 +9,8 @@ CPPSOURCES = checker.cpp carsolver.cpp mainsolver.cpp model.cpp utility.cpp data
 OBJS = checker.o carsolver.o mainsolver.o model.o main.o utility.o data_structure.o aiger.o\
 	Solver.o Options.o System.o picosat.o
 
-CFLAG = -I../ -I./minisat -D__STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -c -O3 -fpermissive
-DFLAG = -I../ -I./minisat -D__STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -c -g -fpermissive
-PFLAG = -pg -I../ -I./minisat -D__STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -fpermissive -c 
-#CFLAG = -I../ -I./glucose -D__STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -c -g 
+CFLAG = -I../ -I./minisat -D__STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -c -g -fpermissive -D__DEBUG__ -O3
+#CFLAG = -I../ -I./glucose -D__STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -c -g -D__DEBUG__
 
 LFLAG = -g -lz -lpthread 
 
@@ -24,18 +22,6 @@ simplecar: $(CSOURCES) $(CPPSOURCES)
 	$(GCC) $(CFLAG) $(CSOURCES)
 	$(GCC) $(CFLAG) -std=c++11 $(CPPSOURCES)
 	$(GXX) -o simplecar $(OBJS) $(LFLAG)
-	rm *.o
-
-profile: $(CSOURCES) $(CPPSOURCES)
-	$(GCC) $(PFLAG) $(CSOURCES)
-	$(GCC) $(PFLAG) -std=c++11 $(CPPSOURCES)
-	$(GXX) -o simplecar $(OBJS) $(LFLAG) -pg
-	rm *.o
-
-debug: $(CSOURCES) $(CPPSOURCES)
-	$(GCC) $(DFLAG) $(CSOURCES)
-	$(GCC) $(DFLAG) -std=c++11 $(CPPSOURCES)
-	$(GXX) -o simplecar $(OBJS) $(LFLAG) 
 	rm *.o
 
 picosat: $(CSOURCES) $(CPPSOURCES)

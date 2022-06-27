@@ -33,9 +33,8 @@ namespace car
 	//int MainSolver::max_flag_ = -1;
 	//vector<int> MainSolver::frame_flags_;
 	
-	MainSolver::MainSolver (Model* m, Statistics* stats, int SAT_type, const bool verbose) 
+	MainSolver::MainSolver (Model* m, Statistics* stats, const bool verbose) 
 	{
-		SAT_type_ = SAT_type;
 	    verbose_ = verbose;
 	    stats_ = stats;
 		model_ = m;
@@ -45,13 +44,9 @@ namespace car
 	    //constraints
 		for (int i = 0; i < m->outputs_start (); i ++)
 			add_clause (m->element (i));
-		//bad 
-		for (int i = m->bad_start (); i < m->outputs_start (); i ++)
-			add_clause (m->element (i));
 		//outputs
 		for (int i = m->outputs_start (); i < m->latches_start (); i ++)
 			add_clause (m->element (i));
-
 		//latches
 		for (int i = m->latches_start (); i < m->size (); i ++)
 		    add_clause (m->element (i));
@@ -105,42 +100,6 @@ namespace car
 		std::sort (res.begin (), res.end (), car::comp);
 		return res;
 	}
-
-	Cube MainSolver::get_conflict (const State* s, const bool forward, const bool minimal, const Cube& refer, bool& constraint)
-	{
-		return get_conflict (s->s(), forward, minimal, refer, constraint);
-	}
-	
-	Cube MainSolver::get_conflict (const Cube& cu, const bool forward, const bool minimal, const Cube& refer, bool& constraint)
-	{
-		Cube tmp_refer = refer;
-		if (forward)
-		{
-			for (vector<int>::iterator it = tmp_refer.begin(); it != tmp_refer.end(); ++it)
-				*it = model_->prime (*it);
-		}
-		int minimal_skip_id = model_->max_id ();
-		Cube conflict = get_uc (minimal, tmp_refer, minimal_skip_id);
-		
-		if (minimal)
-		{
-			stats_->count_orig_uc_size (int (conflict.size ()));
-			try_reduce (conflict);
-			stats_->count_reduce_uc_size (int (conflict.size ()));
-		}
-		
-			
-		if (forward)
-		    model_->shrink_to_previous_vars (cu, conflict, constraint);
-		else
-		    model_ -> shrink_to_latch_vars (conflict, constraint);
-		
-		
-		std::sort (conflict.begin (), conflict.end (), car::comp);
-		
-		return conflict;
-	}
-	
 	
 	Cube MainSolver::get_conflict (const bool forward, const bool minimal, bool& constraint)
 	{
@@ -188,7 +147,40 @@ namespace car
 		add_clause (cl);
 	}
 	
-
+	bool MainSolver::solve_with_assumption_for_temporary (Cube& s, int frame_level, bool forward, Cube& tmp_block){
+		//add temporary clause
+		int flag = max_flag_++;
+		vector<int> cl;
+		cl.push_back (-flag);
+		for (int i = 0; i < tmp_block.size (); ++i)
+		{
+			if (!forward)
+				cl.push_back (-model_->prime (tmp_block[i]));
+			else
+				cl.push_back (-tmp_block[i]);
+		}
+		add_clause (cl);
+		
+		//add assumptions
+		assumption_.clear ();
+		
+		for (int i = 0; i < s.size(); ++i){
+			if (forward)
+				assumption_push (model_->prime (s[i]));
+			else
+				assumption_push (s[i]);
+		}
+		
+		assumption_push (flag);
+		assumption_push (flag_of (frame_level));
+			
+		bool res = solve_with_assumption ();
+		add_clause (-flag);
+		
+		return res;
+		
+	}
+	
 	void MainSolver::shrink_model (Assignment& model, const bool forward, const bool partial)
 	{
 	    Assignment res;

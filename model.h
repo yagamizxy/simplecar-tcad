@@ -35,7 +35,7 @@ extern "C" {
 namespace car {
 class Model {
 public:
-	Model (aiger*, const bool forward, const bool verbose = false);
+	Model (aiger*, const bool verbose = false);
 	~Model () {}
 	
 	int prime (const int);
@@ -43,30 +43,26 @@ public:
 	
 	bool state_var (const int id)  {return (id >= 1) && (id <= num_inputs_+num_latches_);}
 	bool latch_var (const int id)  {return (id >= num_inputs_+1) && (id <= num_inputs_+num_latches_);}
-	bool input_var (const int id)  {return (id <= num_inputs_) && (id >= 1);}
+	bool input_var (const int id)  {return (id >= 1) && (id <= num_inputs_);}
+	
 	inline int num_inputs () {return num_inputs_;}
 	inline int num_latches () {return num_latches_;}
 	inline int num_ands () {return num_ands_;}
 	inline int num_constraints () {return num_constraints_;}
 	inline int num_outputs () {return num_outputs_;}
-	inline int num_bad () {return num_bad_;}
 	inline int max_id () {return max_id_;}
-	inline int bad_start () {return bad_start_;}
 	inline int outputs_start () {return outputs_start_;}
 	inline int latches_start () {return latches_start_;}
 	inline int size () {return cls_.size ();}
 	inline std::vector<int>& element (const int id) {return cls_[id];}
 	inline int output (const int id) {return outputs_[id];}
-	inline std::vector<int>& outputs () {return outputs_;}
-	inline std::vector<int>& bads () {return bads_;}
+	
 	inline Cube& init () {return init_;}
 	
-	void shrink_to_previous_vars (const Cube& s, Cube& uc, bool& constraint);
 	void shrink_to_previous_vars (Cube& cu, bool& constraint);
+	void shrink_to_state_vars (Cube& uc);
 	void shrink_to_latch_vars (Cube& cu, bool& constraint);
-	void shrink_to_input_vars (Cube& uc);
-
-	std::vector<Clause> create_constraint_from_previous (std::vector<int>& elements, int init_flag);
+	Cube shrink_to_input_vars (Assignment& st);
 	
 	inline int true_id () {return true_;}
 	inline int false_id () {return false_;}
@@ -78,14 +74,12 @@ public:
 private:
 	//members
 	bool verbose_;
-	bool forward_;
 		
 	int num_inputs_;
 	int num_latches_;
 	int num_ands_;
 	int num_constraints_;
 	int num_outputs_;
-	int num_bad_;
 	
 	int max_id_;  //maximum used id in the model
 	
@@ -97,7 +91,6 @@ private:
 	
 	vect init_;   //initial state
 	vect outputs_; //output ids
-	vect bads_;
 	vect constraints_; //constraint ids
 	Clauses cls_;  //set of clauses, it contains three parts:
 	                //(1) clauses for constraints, i.e. those before position outputs_start_;
@@ -105,7 +98,6 @@ private:
 	                //(3) clauses for latches, i.e. all 
 	
 	int outputs_start_; //the index of cls_ to point the start position of outputs
-	int bad_start_;
 	int latches_start_; //the index of cls_ to point the start position of latches
 	
 	typedef hash_map<int, int> nextMap;
@@ -162,11 +154,6 @@ private:
 	{
 	    outputs_start_ = cls_.size ();
 	}
-
-	inline void set_bad_start ()
-	{
-	    bad_start_ = cls_.size ();
-	}
 	
 	inline void set_latches_start ()
 	{
@@ -183,7 +170,6 @@ private:
 	void set_init (const aiger* aig);
 	void set_constraints (const aiger* aig);
 	void set_outputs (const aiger* aig);
-	void set_bads (const aiger* aig);
 	void insert_to_reverse_next_map (const int index, const int val);
 public:
 	bool propagate (const std::vector<int>& assump, std::vector<int>& res);
