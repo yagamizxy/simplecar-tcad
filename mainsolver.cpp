@@ -33,6 +33,16 @@ namespace car
 	//int MainSolver::max_flag_ = -1;
 	//vector<int> MainSolver::frame_flags_;
 	
+	MainSolver::MainSolver (int max_id, Statistics* stats, int SAT_type, const bool verbose) 
+	{
+		SAT_type_ = SAT_type;
+	    verbose_ = verbose;
+	    stats_ = stats;
+		model_ = NULL;
+		init_flag_ = max_id + 1; 
+		dead_flag_ = max_id + 2;
+		max_flag_ = max_id + 3;
+	}
 	MainSolver::MainSolver (Model* m, Statistics* stats, int SAT_type, const bool verbose) 
 	{
 		SAT_type_ = SAT_type;
@@ -91,7 +101,7 @@ namespace car
 		return model;
 	}
 	
-	//this version is used for bad check only
+	//this version is used for bad check and enumerate solver check only
 	Cube MainSolver::get_conflict (const int bad,const bool minimal)
 	{
 		Cube conflict = get_uc (minimal);
