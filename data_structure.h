@@ -28,6 +28,8 @@
  #include <stdlib.h>
  #include <iostream>
  #include <fstream>
+ #include <algorithm>
+ #include "hash_map.h"
  
  namespace car
  {
@@ -66,7 +68,7 @@
 		Frame () {}
 		~Frame (){}
 		inline int size () {return cubes_.size();}
-		inline void clear () {cubes_.clear ();}
+		inline void clear () {cubes_.clear ();literal_index_map_.clear();}
 		inline std::vector<FrameElement>& cubes () {return cubes_;}
 		inline bool empty () {return cubes_.empty ();}
 		inline bool propagated (const int index) {return cubes_[index].propagated ();}
@@ -92,8 +94,16 @@
 
 		friend std::ostream& operator <<(std::ostream& os, const Frame& frame);
 
+		void add (Cube& cu);
+		void print_index_map ();
+
 	private:
 		std::vector<FrameElement> cubes_;
+		hash_map<int, std::vector<int> > literal_index_map_; //given a literal, return all indexes it appears in cubes_
+	
+		std::vector<int> get_indexes (const Cube& cu);
+		void update_index_for (const Cube& cu, const int sz);
+		void update_index_map (const std::vector<int>& vals);
 	};
 	class Fsequence
 	{

@@ -1324,6 +1324,14 @@ namespace car
 		
 		enumerate_solver_add_clause_from_cube (frame_element.cube(), frame_level);
 
+		// cout << "push into frame " << frame_level << endl;
+		// car::print (cu);
+		// cout << "before push" << endl;
+		// frame.print_index_map ();
+		//frame.add (cu);
+		// cout << "after push" << endl;
+		// frame.print_index_map ();
+
 		//To add \@ cu to \@ frame, there must be
 		//1. \@ cu does not imply any clause in \@ frame
 		//2. if a clause in \@ frame implies \@ cu, replace it by \@cu
@@ -1353,15 +1361,7 @@ namespace car
 		} 
 		stats_->count_clause_contain_time_end ();
 		tmp_frame.emplace_back (frame_element);
-		/*
-		//update comm
-		Cube& comm = (frame_level < int (comms_.size ())) ? comms_[frame_level] : comm_;
-		if (comm.empty ())
-			comm = cu;
-		else {
-		        comm = vec_intersect (cu, comm);
-		}
-		*/
+
 		frame = tmp_frame;
 		
 		if (frame_level-1 < minimal_update_level_)

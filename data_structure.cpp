@@ -33,6 +33,130 @@
  
  namespace car
  {
+
+	void Frame::add (Cube& cu)
+	{
+		vector<int> indexes = get_indexes (cu);
+		if (indexes.empty ())
+		{
+			cubes_.emplace_back (cu);
+			update_index_for (cu, cubes_.size()-1);
+			return;
+		}
+			
+		int relative = 0;
+		for (auto it = indexes.begin(); it != indexes.end(); ++it)
+		{
+			cubes_.erase (cubes_.begin()+(*it)-relative);
+			relative ++;
+		}
+		// cout << "before" << endl;
+		// print_index_map ();
+		// cout << "indexes" << endl;
+		// car::print (indexes);
+		update_index_map (indexes);
+		// cout << "after" << endl;
+		// print_index_map ();
+
+		cubes_.emplace_back (cu);
+		update_index_for (cu, cubes_.size()-1);
+	}
+
+	std::vector<int> Frame::get_indexes (const Cube& cu)
+	{
+		std::vector<int> res;
+		for (auto it = cu.begin(); it != cu.end(); ++it)
+		{
+			auto index_it = literal_index_map_.find (*it);
+			if (index_it == literal_index_map_.end())
+			{
+				res.clear();
+				return res;
+			}
+			else
+			{
+				if (res.empty ())
+					res = index_it->second;
+				else
+				{
+					res = vec_intersect (res, index_it->second);
+					if (res.empty ())
+						return res;
+				}
+			}
+		}
+		return res;
+	}
+
+	void Frame::update_index_for (const Cube& cu, const int sz)
+	{
+		for (auto it = cu.begin(); it != cu.end(); it ++)
+		{
+			auto index_it = literal_index_map_.find (*it);
+			if (index_it == literal_index_map_.end())
+			{
+				vector<int> val_vec;
+				val_vec.emplace_back (sz);
+				literal_index_map_.insert (std::pair<int, vector<int> > (*it, val_vec));
+			}
+			else
+			{
+				auto it_vec = std::upper_bound ((index_it->second).cbegin(), (index_it->second).cend(), sz);
+				(index_it->second).insert (it_vec, sz);
+			}
+		}
+	}
+
+	void Frame::update_index_map (const std::vector<int>& vals)
+	{
+		if (vals.empty())
+			return;
+		for (auto it = literal_index_map_.begin(); it != literal_index_map_.end(); ++it)
+		{
+			vector<int>& indexes = it->second;
+			int relative = 0;
+			for (int i = 0; i < indexes.size(); ++ i)
+			{
+
+				if (relative >= vals.size())
+				{
+					indexes[i] -= relative;
+					continue;
+				}
+
+				while (indexes[i] > vals[relative])
+				{
+					relative ++;
+					if (relative >= vals.size())
+						break;
+				}
+
+				if (relative < vals.size ())
+				{
+					if (indexes[i] == vals[relative])
+					{
+						relative ++;
+						indexes.erase (indexes.begin()+i);
+						i --;
+						continue;
+					}
+				}
+
+				indexes[i] -= relative; 
+			}
+				
+		}
+	}
+
+	void Frame::print_index_map ()
+	{
+		for (auto index_it = literal_index_map_.begin(); index_it != literal_index_map_.end(); ++index_it)
+		{
+			cout << index_it->first << " -> ";
+			car::print (index_it->second);
+		}	
+	}
+
 	std::string FrameElement::to_string ()
 	{
 		std::ostringstream os;
@@ -50,7 +174,8 @@
 	{
 		for (auto id : element.cube())
 		{
-			int val = (id > 0) ? (id*2) : ((-id)*2+1);
+			//int val = (id > 0) ? (id*2) : ((-id)*2+1);
+			int val = id;
 			os << val << " ";
 		}
 			
@@ -61,6 +186,8 @@
 	{
 		for (auto frame_element : frame.cubes())
 			os << frame_element;
+		//frame.print_index_map ();
+		
 		return os;
 	}
 	std::ostream& operator <<(std::ostream& os, const Fsequence& F)

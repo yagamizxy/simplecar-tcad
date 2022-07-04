@@ -33,7 +33,8 @@ void print (const std::vector<int>& v)
 {
     for (int i = 0; i < v.size (); i ++)
     {
-        int val = (v[i]>0) ? v[i]*2 : ((-v[i])*2+1);
+        //int val = (v[i]>0) ? v[i]*2 : ((-v[i])*2+1);
+        int val = v[i];
         std::cout << val << " ";
     }
         
