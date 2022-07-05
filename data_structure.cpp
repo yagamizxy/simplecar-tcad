@@ -40,7 +40,13 @@
 		if (indexes.empty ())
 		{
 			cubes_.emplace_back (cu);
+			// cout << "before" << endl;
+			// print_index_map ();
+			// cout << "indexes" << endl;
+			// car::print (indexes);
 			update_index_for (cu, cubes_.size()-1);
+			// cout << "after" << endl;
+			// print_index_map ();
 			return;
 		}
 			
@@ -55,16 +61,18 @@
 		// cout << "indexes" << endl;
 		// car::print (indexes);
 		update_index_map (indexes);
-		// cout << "after" << endl;
-		// print_index_map ();
+		
 
 		cubes_.emplace_back (cu);
 		update_index_for (cu, cubes_.size()-1);
+		// cout << "after" << endl;
+		// print_index_map ();
 	}
 
 	std::vector<int> Frame::get_indexes (const Cube& cu)
 	{
 		std::vector<int> res;
+		bool first = true;
 		for (auto it = cu.begin(); it != cu.end(); ++it)
 		{
 			auto index_it = literal_index_map_.find (*it);
@@ -75,8 +83,11 @@
 			}
 			else
 			{
-				if (res.empty ())
+				if (first)
+				{
 					res = index_it->second;
+					first = false;
+				}
 				else
 				{
 					res = vec_intersect (res, index_it->second);
@@ -101,7 +112,7 @@
 			}
 			else
 			{
-				auto it_vec = std::upper_bound ((index_it->second).cbegin(), (index_it->second).cend(), sz);
+				auto it_vec = std::upper_bound ((index_it->second).begin(), (index_it->second).end(), sz);
 				(index_it->second).insert (it_vec, sz);
 			}
 		}
@@ -111,6 +122,7 @@
 	{
 		if (vals.empty())
 			return;
+		vector<int> to_erase_index;
 		for (auto it = literal_index_map_.begin(); it != literal_index_map_.end(); ++it)
 		{
 			vector<int>& indexes = it->second;
@@ -144,8 +156,13 @@
 
 				indexes[i] -= relative; 
 			}
-				
+			if (indexes.empty ())
+			{
+				to_erase_index.emplace_back (it->first);
+			}
 		}
+		for (auto it = to_erase_index.begin(); it != to_erase_index.end(); ++it)
+			literal_index_map_.erase (*it);
 	}
 
 	void Frame::print_index_map ()

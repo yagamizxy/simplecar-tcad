@@ -126,6 +126,8 @@ bool imply ( std::vector<int>& v1,  std::vector<int>& v2)
 std::vector<int> vec_intersect (const std::vector<int>& v1, const std::vector<int>& v2)
 {
 	std::vector<int> res;
+    if (v1.empty () || v2.empty ())
+        return res;
 	std::vector<int>::const_iterator first1 = v1.begin (), first2 = v2.begin (), last1 = v1.end (), last2 = v2.end ();
     while (first2 != last2) 
     {
