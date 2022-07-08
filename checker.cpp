@@ -1332,37 +1332,6 @@ namespace car
 		// cout << "after push" << endl;
 		// frame.print_index_map ();
 
-		// //To add \@ cu to \@ frame, there must be
-		// //1. \@ cu does not imply any clause in \@ frame
-		// //2. if a clause in \@ frame implies \@ cu, replace it by \@cu
-		// Frame tmp_frame;
-		// stats_->count_clause_contain_time_start ();
-		// //int max_count = 5000;
-		// for (int i = 0; i < frame.size(); i ++)
-		// {   
-			
-		// 	// if (i < frame.size()-max_count)
-		// 	// {
-		// 	// 	tmp_frame.emplace_back (frame.index_of (i));
-		// 	// 	continue;
-		// 	// }
-			
-			
-		// 	if (imply (cu, frame[i]))
-		// 	{
-		// 		return;
-		// 	}
-		// 	else if (imply (frame[i], cu))
-		// 	{
-		// 		stats_->count_clause_contain_success ();
-		// 	}
-		// 	else
-		// 		tmp_frame.emplace_back (frame.index_of (i));
-		// } 
-		// stats_->count_clause_contain_time_end ();
-		// tmp_frame.emplace_back (frame_element);
-
-		// frame = tmp_frame;
 		
 		if (frame_level-1 < minimal_update_level_)
 			minimal_update_level_ = frame_level;
