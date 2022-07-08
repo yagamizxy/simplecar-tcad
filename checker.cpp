@@ -451,24 +451,19 @@ namespace car
 				frame.set_propagated (i, true);
 				continue;
 			}
-			/*
-			int j = 0;
-			for (; j < next_frame.size(); ++j){
-				if (car::imply (cu, next_frame[j]) )
-				{
-					frame.set_propagated (i, true);
-					break;
-				}
-			}
-			if (j < next_frame.size()) 
-				continue;
-			*/
-			
-		    if (propagate (cu, n)){
-				FrameElement frame_element = frame.index_of (i);
-				frame_element.set_propagated (false);
-		    	push_to_frame (frame_element, n+1);
+
+			Cube uc;
+		    if (propagate (cu, n, uc)){
+				
 				frame.set_propagated (i, true);
+				FrameElement frame_element (uc);
+				push_to_frame (frame_element, n+1);
+				
+				// FrameElement frame_element = frame.index_of (i);
+				// frame_element.set_propagated (false);
+		    	// push_to_frame (frame_element, n+1);
+				// frame.set_propagated (i, true);
+				
 		    }
 		    else
 				flag = false;
@@ -479,7 +474,7 @@ namespace car
 		return false;
 	}
 
-	bool Checker::propagate (Cube& cu, int n){
+	bool Checker::propagate (const Cube& cu, int n, Cube& uc){
 		solver_->set_assumption (cu, n, forward_);
 		//solver_->print_assumption();
 		//solver_->print_clauses();
@@ -487,7 +482,18 @@ namespace car
 		bool res = solver_->propagate_solve_with_assumption ();
 		stats_->count_main_solver_SAT_time_end ();
 		if (!res)
+		{
+			bool constraint = false;
+			uc = solver_->get_conflict (forward_, minimal_uc_, constraint);
+			// if (uc.size() < cu.size())
+			// {
+			// 	cout << "uc is ";
+			// 	car::print (uc);
+			// 	cout << "original clause is " ;
+			// 	car::print (cu);
+			// }
 			return true;
+		}
 		return false;
 	}
 	
