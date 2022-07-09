@@ -94,6 +94,7 @@
 
 		friend std::ostream& operator <<(std::ostream& os, const Frame& frame);
 
+		std::vector<int> get_indexes (const Cube& cu);
 		void add (Cube& cu);
 		void print_index_map ();
 
@@ -101,7 +102,6 @@
 		std::vector<FrameElement> cubes_;
 		hash_map<int, std::vector<int> > literal_index_map_; //given a literal, return all indexes it appears in cubes_
 	
-		std::vector<int> get_indexes (const Cube& cu);
 		void update_index_for (const Cube& cu, const int sz);
 		void update_index_map (const std::vector<int>& vals);
 	};

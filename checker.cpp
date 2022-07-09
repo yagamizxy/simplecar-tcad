@@ -448,13 +448,27 @@ namespace car
 
 			if (!enumerate_solver_check (cu, n+1))
 			{
+				Cube uc = enumerate_solver_get_conflict(n+1);
+				Cube indexes = frame.get_indexes (uc);
+				for (auto it = indexes.begin(); it != indexes.end(); ++it)
+					frame.set_propagated (*it, true);
+
+				// if (uc.size() < cu.size())
+				// {
+				// 	cout << "uc is ";
+				// 	car::print (uc);
+				// 	cout << "original clause is " ;
+				// 	car::print (cu);
+				// }
 				frame.set_propagated (i, true);
 				continue;
 			}
 
 			Cube uc;
 		    if (propagate (cu, n, uc)){
-				
+				Cube indexes = frame.get_indexes (uc);
+				for (auto it = indexes.begin(); it != indexes.end(); ++it)
+					frame.set_propagated (*it, true);
 				frame.set_propagated (i, true);
 				FrameElement frame_element (uc);
 				push_to_frame (frame_element, n+1);
