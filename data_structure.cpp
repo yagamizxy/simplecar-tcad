@@ -34,12 +34,20 @@
  namespace car
  {
 
-	void Frame::add (Cube& cu)
+	void Frame::add (FrameElement* element, int frame_level)
 	{
+		Cube& cu = element->cube();
+		// cout << "before add frame level " << frame_level << endl;
+		// car::print (element->cube());
+		// car::print(element->frame_levels());
+		element->add_frame_level (frame_level);
+		// cout << "after add frame level " << frame_level << endl;
+		// car::print (element->cube());
+		// car::print(element->frame_levels());
 		vector<int> indexes = get_indexes (cu);
 		if (indexes.empty ())
 		{
-			cubes_.emplace_back (cu);
+			cubes_.emplace_back (element);
 			// cout << "before" << endl;
 			// print_index_map ();
 			// cout << "indexes" << endl;
@@ -53,6 +61,14 @@
 		int relative = 0;
 		for (auto it = indexes.begin(); it != indexes.end(); ++it)
 		{
+			FrameElement* e = *(cubes_.begin()+(*it)-relative);
+			// cout << "before remove frame level " << frame_level << endl;
+			// car::print (e->cube());
+			// car::print(e->frame_levels());
+			e->remove_frame_level (frame_level);
+			// cout << "after remove frame level " << frame_level << endl;
+			// car::print (e->cube());
+			// car::print(e->frame_levels());
 			cubes_.erase (cubes_.begin()+(*it)-relative);
 			relative ++;
 		}
@@ -63,7 +79,7 @@
 		update_index_map (indexes);
 		
 
-		cubes_.emplace_back (cu);
+		cubes_.emplace_back (element);
 		update_index_for (cu, cubes_.size()-1);
 		// cout << "after" << endl;
 		// print_index_map ();
@@ -174,6 +190,46 @@
 		}	
 	}
 
+	void FrameElement::add_frame_level (const int level)
+	{
+		auto it = frame_levels_.find (level);
+		assert (it == frame_levels_.end());
+		frame_levels_.insert (level);
+	}
+	void FrameElement::remove_frame_level (const int level)
+	{
+		auto it = frame_levels_.find (level);
+		assert (it != frame_levels_.end());
+		frame_levels_.erase (it);
+	}
+
+	FrameElement* Fsequence::create_frame_element (const Cube& cu)
+	{
+		auto it = frame_element_map_.find (cu);
+		if (it != frame_element_map_.end ())
+		{
+			return it->second;
+		}
+		else
+		{
+			FrameElement* element = new FrameElement (cu);
+			frame_element_map_.insert (std::pair <std::vector<int>, FrameElement*> (cu, element));
+			return element;
+		}
+		return NULL;
+	}
+
+	void Fsequence::remove_unused_frame_elements ()
+	{
+		for (auto it = frame_element_map_.begin(); it != frame_element_map_.end();)
+		{
+			if (((it->second)->frame_levels()).empty())
+				frame_element_map_.erase (it++);
+			else
+				++it;
+		}
+	}
+
 	std::string FrameElement::to_string ()
 	{
 		std::ostringstream os;
@@ -184,7 +240,7 @@
 	{
 		string res = "";
 		for (auto element : cubes_)
-			res += element.to_string ();
+			res += element->to_string ();
 		return res;
 	}
 	std::ostream& operator <<(std::ostream& os, const FrameElement& element)

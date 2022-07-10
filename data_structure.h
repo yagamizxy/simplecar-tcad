@@ -28,8 +28,10 @@
  #include <stdlib.h>
  #include <iostream>
  #include <fstream>
+ #include <map>
  #include <algorithm>
  #include "hash_map.h"
+ #include "utility.h"
  
  namespace car
  {
@@ -53,6 +55,10 @@
 		inline void set_propagated (bool val) {propagated_ = val;}
 		inline void add_state (State* s) {states_.push_back (s);}
 		std::string to_string ();
+		void add_frame_level (const int level);
+		void remove_frame_level (const int level);
+		inline hash_set<int>& frame_levels () {return frame_levels_;}
+		inline bool is_in (const int n) {return frame_levels_.find (n) != frame_levels_.end();}
 
 		friend std::ostream& operator <<(std::ostream& os, const FrameElement& element);
 
@@ -60,6 +66,7 @@
 		Cube cu_;
 		std::vector<State*> states_; //all states using current frame as the prefix for assumption
 		bool propagated_;   //flag to whether the current frame is propagated to next level
+		hash_set<int> frame_levels_; //store all frame levels the element belongs to
 	};
 
 	class Frame
@@ -69,37 +76,28 @@
 		~Frame (){}
 		inline int size () {return cubes_.size();}
 		inline void clear () {cubes_.clear ();literal_index_map_.clear();}
-		inline std::vector<FrameElement>& cubes () {return cubes_;}
+		inline std::vector<FrameElement*>& cubes () {return cubes_;}
 		inline bool empty () {return cubes_.empty ();}
-		inline bool propagated (const int index) {return cubes_[index].propagated ();}
-		inline void set_propagated (const int index, bool val) {cubes_[index].set_propagated (val);}
-		inline Cube& operator [](int index) {return cubes_[index].cube();}
-		inline FrameElement& index_of (int index) {return cubes_[index];}
-		inline void push_back (FrameElement& element) {cubes_.push_back (element);}
-		inline void emplace_back (FrameElement& element) {cubes_.emplace_back (element);}
-		inline void push_back (Cube& cu) 
-		{
-			FrameElement element (cu);
-			cubes_.push_back (element);
-		}
-		inline void emplace_back (Cube& cu) 
-		{
-			FrameElement element (cu);
-			cubes_.emplace_back (element);
-		}
+		inline bool propagated (const int index) {return cubes_[index]->propagated ();}
+		inline void set_propagated (const int index, bool val) {cubes_[index]->set_propagated (val);}
+		inline Cube& operator [](int index) {return cubes_[index]->cube();}
+		inline FrameElement* index_of (int index) {return cubes_[index];}
+		inline void push_back (FrameElement* element) {cubes_.push_back (element);}
+		inline void emplace_back (FrameElement* element) {cubes_.emplace_back (element);}
+		
 
 		std::string to_string ();
 
-		inline std::vector<State*>& get_states (int index) {return cubes_[index].states ();}
+		inline std::vector<State*>& get_states (int index) {return cubes_[index]->states ();}
 
 		friend std::ostream& operator <<(std::ostream& os, const Frame& frame);
 
 		std::vector<int> get_indexes (const Cube& cu);
-		void add (Cube& cu);
+		void add (FrameElement* element, int frame_level);
 		void print_index_map ();
 
 	private:
-		std::vector<FrameElement> cubes_;
+		std::vector<FrameElement*> cubes_;
 		hash_map<int, std::vector<int> > literal_index_map_; //given a literal, return all indexes it appears in cubes_
 	
 		void update_index_for (const Cube& cu, const int sz);
@@ -110,8 +108,15 @@
 	public:
 		Fsequence (){}
 		~Fsequence (){}
+		inline void destroy_frame_elements ()
+		{
+			for (auto it = frame_element_map_.begin(); it != frame_element_map_.end(); ++it)
+				if (it->second != NULL)
+					delete it->second;
+			frame_element_map_.clear ();
+		}
 		inline int size () {return frames_.size();}
-		inline void clear () {frames_.clear ();}
+		inline void clear () {frames_.clear (); destroy_frame_elements ();}
 		inline std::vector<Frame>& frames () {return frames_;}
 		inline Frame& operator [](int index) {return frames_[index];}
 		inline bool empty () {return frames_.empty ();}
@@ -119,10 +124,14 @@
 		inline void emplace_back (Frame& frame) {frames_.emplace_back (frame);}
 		inline void pop_back () {frames_.pop_back ();}
 
+		FrameElement* create_frame_element (const Cube& cu);
+		void remove_unused_frame_elements ();
+
 		friend std::ostream& operator <<(std::ostream& os, const Fsequence& F);
 		
 	private:
 		std::vector<Frame> frames_;
+		std::map<std::vector<int>, FrameElement*, car::vec_comp> frame_element_map_;
 	};
  	
 

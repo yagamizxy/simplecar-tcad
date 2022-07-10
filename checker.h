@@ -144,7 +144,7 @@ namespace car
 		void update_frame_by_relative (const State* s, const int frame_level);
 		void update_B_sequence (State* s);
 		int get_new_level (const State *s, const int frame_level);
-		void push_to_frame (FrameElement& element, const int frame_level);
+		void push_to_frame (FrameElement* element, const int frame_level);
 		bool tried_before (const State* s, const int frame_level);
 		
 		

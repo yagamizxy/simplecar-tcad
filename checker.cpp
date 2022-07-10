@@ -324,7 +324,9 @@ namespace car
 		
 		//if (frame_level < minimal_update_level_)
 			//minimal_update_level_ = frame_level;
-		
+		// cout << "state is" << endl;
+		// car::print (s->s());
+		// cout << "frame level is " << frame_level << endl;
 		bool all_predeccessor_dead = true; 
 		if (frame_level == -1)
 		{
@@ -444,6 +446,11 @@ namespace car
 		for (int i = 0; i < frame.size (); ++i){
 			if (frame.propagated(i))
 				continue;
+
+			FrameElement* e = frame.index_of (i);
+			if (e->is_in (n+1))
+				continue;
+
 			Cube& cu = frame[i];
 
 			if (!enumerate_solver_check (cu, n+1))
@@ -470,7 +477,7 @@ namespace car
 				for (auto it = indexes.begin(); it != indexes.end(); ++it)
 					frame.set_propagated (*it, true);
 				frame.set_propagated (i, true);
-				FrameElement frame_element (uc);
+				FrameElement* frame_element = F_.create_frame_element (uc);
 				push_to_frame (frame_element, n+1);
 				
 				// FrameElement frame_element = frame.index_of (i);
@@ -658,7 +665,8 @@ namespace car
 		    {
 		        Cube cu;
 		        cu.emplace_back (-init_->element (i));
-		        frame.emplace_back (cu);
+				FrameElement* element = F_.create_frame_element (cu);
+		        frame.emplace_back (element);
 				enumerate_solver_add_clause_from_cube (cu, 0);
 		    }
 		}
@@ -671,7 +679,8 @@ namespace car
 	             report_safe ();
 	             return;
 	        }
-	        frame.emplace_back (cu);
+	        FrameElement* element = F_.create_frame_element (cu);
+		    frame.emplace_back (element);
 			enumerate_solver_add_clause_from_cube (cu, 0);
 		comms_.emplace_back (cu);
 		}
@@ -1008,44 +1017,12 @@ namespace car
 			report_safe ();
 			return;
 		}
-		
 
-	/*
-		//make cu incremental, this implementation assumes initial state vars are all 0.
-		if (forward_)
-		{
-			if (is_initial (cu))
-			{
-				auto it = s->s().begin();
-				while ((*it) < 0) ++it;
-				assert (it != s->s().end());
-				int i = 0;
-				for (; i < cu.size(); ++i)
-					if (abs(cu[i]) > abs(*it))
-						break;
-				cu.insert (cu.begin()+i, *it);
-			}
-		}
-		*/
-
-		FrameElement frame_element (cu);
+		FrameElement* frame_element = F_.create_frame_element (cu);
 		s->set_prefix_for_assumption (cu);
 		stats_->count_update_F_time_start ();
 			
 		push_to_frame (frame_element, frame_level);
-
-	/*
-		if (forward_)
-		{
-			for (int i = frame_level-1; i >= 1; --i)
-			{
-				FrameElement new_frame_element = frame_element;
-				new_frame_element.set_propagated (true);
-				push_to_frame (new_frame_element, i);
-			}
-				
-		}
-		*/
 		
 				
 		stats_->count_update_F_time_end ();
@@ -1178,7 +1155,7 @@ namespace car
 		}
 		
 
-		FrameElement frame_element (cu);
+		FrameElement* frame_element = F_.create_frame_element (cu);
 		s->set_prefix_for_assumption (cu);
 		stats_->count_update_F_time_start ();
 			
@@ -1337,18 +1314,20 @@ namespace car
 			
 	}
 	
-	void Checker::push_to_frame (FrameElement& frame_element, const int frame_level)
+	void Checker::push_to_frame (FrameElement* frame_element, const int frame_level)
 	{
-		Cube& cu = frame_element.cube ();
+		Cube& cu = frame_element->cube ();
 		Frame& frame = (frame_level < int (F_.size ())) ? F_[frame_level] : frame_;
 		
-		enumerate_solver_add_clause_from_cube (frame_element.cube(), frame_level);
+		enumerate_solver_add_clause_from_cube (frame_element->cube(), frame_level);
 
 		// cout << "push into frame " << frame_level << endl;
 		// car::print (cu);
 		// cout << "before push" << endl;
 		// frame.print_index_map ();
-		frame.add (cu);
+		FrameElement* element = F_.create_frame_element (cu);
+		frame.add (element, frame_level);
+		//F_.remove_unused_frame_elements ();
 		// cout << "after push" << endl;
 		// frame.print_index_map ();
 

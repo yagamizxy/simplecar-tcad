@@ -59,6 +59,21 @@ inline std::vector<int> cube_intersect (const std::vector<int>& v1, const std::v
 std::vector<int> vec_merge (const std::vector<int>& v1, const std::vector<int>& v2);
 
 bool comp (int i, int j);
+struct vec_comp 
+{
+    bool operator ()(const std::vector<int> &v1, const std::vector<int> &v2) const
+    {
+        if (v1.size() != v2.size())
+            return v1.size() < v2.size();
+        for (int i = 0; i < v1.size(); ++i)
+        {
+            if (v1[i] < v2[i])
+                return true;
+        }
+        return false;
+    }
+};
+
 
 }
 

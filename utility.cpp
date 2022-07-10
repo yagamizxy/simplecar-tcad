@@ -78,6 +78,18 @@ bool comp (int i, int j)
 	return abs (i) < abs(j);
 }
 
+// bool vec_comp (const std::vector<int>& v1, const std::vector<int>& v2)
+// {
+//     if (v1.size() != v2.size())
+//         return v1.size () < v2.size();
+//     for (int i = 0; i < v1.size(); ++i)
+//     {
+//         if (comp (v1[i], v2[i]))
+//             return true;
+//     }
+//     return false;
+// }
+
 //elements in v1, v2 are in order
 //check whether v2 is contained in v1 
 bool imply ( std::vector<int>& v1,  std::vector<int>& v2)
