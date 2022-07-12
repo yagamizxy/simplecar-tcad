@@ -193,14 +193,14 @@
 	void FrameElement::add_frame_level (const int level)
 	{
 		auto it = frame_levels_.find (level);
-		assert (it == frame_levels_.end());
-		frame_levels_.insert (level);
+		if (it == frame_levels_.end())
+			frame_levels_.insert (level);
 	}
 	void FrameElement::remove_frame_level (const int level)
 	{
 		auto it = frame_levels_.find (level);
-		assert (it != frame_levels_.end());
-		frame_levels_.erase (it);
+		if (it != frame_levels_.end())
+			frame_levels_.erase (it);
 	}
 
 	FrameElement* Fsequence::create_frame_element (const Cube& cu)

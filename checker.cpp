@@ -444,8 +444,8 @@ namespace car
 		
 		bool flag = true;
 		for (int i = 0; i < frame.size (); ++i){
-			if (frame.propagated(i))
-				continue;
+			// if (frame.propagated(i))
+			// 	continue;
 
 			FrameElement* e = frame.index_of (i);
 			if (e->is_in (n+1))
@@ -458,7 +458,8 @@ namespace car
 				Cube uc = enumerate_solver_get_conflict(n+1);
 				Cube indexes = frame.get_indexes (uc);
 				for (auto it = indexes.begin(); it != indexes.end(); ++it)
-					frame.set_propagated (*it, true);
+					frame.add_frame_level (*it, n+1);
+					//frame.set_propagated (*it, true);
 
 				// if (uc.size() < cu.size())
 				// {
@@ -467,7 +468,7 @@ namespace car
 				// 	cout << "original clause is " ;
 				// 	car::print (cu);
 				// }
-				frame.set_propagated (i, true);
+				//frame.set_propagated (i, true);
 				continue;
 			}
 
@@ -475,8 +476,9 @@ namespace car
 		    if (propagate (cu, n, uc)){
 				Cube indexes = frame.get_indexes (uc);
 				for (auto it = indexes.begin(); it != indexes.end(); ++it)
-					frame.set_propagated (*it, true);
-				frame.set_propagated (i, true);
+					frame.add_frame_level (*it, n+1);
+					//frame.set_propagated (*it, true);
+				//frame.set_propagated (i, true);
 				FrameElement* frame_element = F_.create_frame_element (uc);
 				push_to_frame (frame_element, n+1);
 				

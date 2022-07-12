@@ -84,6 +84,7 @@
 		inline FrameElement* index_of (int index) {return cubes_[index];}
 		inline void push_back (FrameElement* element) {cubes_.push_back (element);}
 		inline void emplace_back (FrameElement* element) {cubes_.emplace_back (element);}
+		inline void add_frame_level (const int pos, const int level){ cubes_[pos]->add_frame_level (level);}
 		
 
 		std::string to_string ();
@@ -94,6 +95,7 @@
 
 		std::vector<int> get_indexes (const Cube& cu);
 		void add (FrameElement* element, int frame_level);
+		
 		void print_index_map ();
 
 	private:
