@@ -282,8 +282,8 @@ void check_aiger (int argc, char** argv)
 int main (int argc, char ** argv)
 {
   
-  signal (SIGALRM, signal_handler);
-  alarm(3600);
+  //signal (SIGALRM, signal_handler);
+  //alarm(36000);
   signal (SIGINT, signal_handler);
   check_aiger (argc, argv);
   alarm(0);
