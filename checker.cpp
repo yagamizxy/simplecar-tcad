@@ -73,7 +73,9 @@ namespace car
 	#ifdef __DEBUG__
 		std::cout<<"B size: "<<print_B_num()<<std::endl;
 		std::cout<<"dead state number: "<<print_dead_num()<<std::endl;	
-	#endif		
+	#endif	
+			std::cout<<"B size: "<<print_B_num()<<std::endl;
+		    std::cout<<"dead state number: "<<print_dead_num()<<std::endl;	
    			if (evidence_ && res)
     			print_evidence (out);
 			//check_evidence ();
@@ -384,9 +386,10 @@ namespace car
 			}
 			if (propagated) continue;
 			
-	
+			stats_->count_propagate_();
 		    if (propagate (cu, n)){
 		    	push_to_frame (cu, n+1);
+				stats_->count_propagate_success_();
 		    }
 		    else
 		    	flag = false;
@@ -983,7 +986,7 @@ namespace car
 		if (!res){
 			bool constraint = false;
 			//dead_uc = dead_solver_->get_conflict (forward_, minimal_uc_, constraint);
-			dead_uc = dead_solver_->get_conflict (forward_, false, constraint);
+			dead_uc = dead_solver_->get_conflict (forward_, minimal_uc_, constraint);
 			//foward dead_cu MUST rule out those not in \@s //TO BE REUSED!
 			if (forward_){
 				Cube tmp;

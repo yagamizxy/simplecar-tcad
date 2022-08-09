@@ -57,6 +57,8 @@ class Statistics
         	num_detect_dead_state_SAT_calls_ = 0;
         	time_detect_dead_state_SAT_calls_ = 0.0;
         	num_detect_dead_state_success_ = 0;
+            try_propagate_ = 0;
+            propagate_success_ = 0;
 
         }
         ~Statistics () {}
@@ -82,6 +84,8 @@ class Statistics
             std::cout << "Clause contain successful rate: " << (double)num_clause_contain_success_/num_clause_contain_ << std::endl;
             std::cout << "Num of state contain: " << num_state_contain_ << std::endl;
             std::cout << "Time of state contain: " << time_state_contain_ << std::endl;
+            std::cout << "Num of try propagate: " << try_propagate_ << std::endl;
+            std::cout << "Num of propagate success: " << propagate_success_ << std::endl;
             
             //std::cout << "Sum of original uc: " << orig_uc_size_ << std::endl;
             //std::cout << "Sum of reduce uc: " << reduce_uc_size_ << std::endl;
@@ -220,6 +224,14 @@ class Statistics
         {
             num_detect_dead_state_success_ += 1;
         }
+        inline void count_propagate_ ()
+        {
+            try_propagate_ += 1;
+        }
+        inline void count_propagate_success_ ()
+        {
+            propagate_success_ += 1;
+        }
         
     private:
         int num_SAT_calls_;
@@ -247,6 +259,8 @@ class Statistics
         double time_detect_dead_state_SAT_calls_;
         
         int num_detect_dead_state_success_;
+        int try_propagate_;
+        int propagate_success_;
         
         clock_t begin_, end_;
         clock_t total_begin_, total_end_;

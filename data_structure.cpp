@@ -29,7 +29,6 @@
  #include <string.h>
  #include <assert.h>
  using namespace std;
- #define __DEBUG__
 
  
  namespace car
