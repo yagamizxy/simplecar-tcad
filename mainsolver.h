@@ -84,6 +84,7 @@ class MainSolver : public CARSolver
 		void add_clause_from_cube (const Cube& cu, const int frame_level, const bool forward_);
 		
 		bool solve_with_assumption_for_temporary (Cube& s, int frame_level, bool forward, Cube& tmp_block);
+		bool MainSolver::solve_with_assumption_for_inv_test (Cube& s,bool forward);
 		
 		inline void update_constraint (Cube& cu)
 		{

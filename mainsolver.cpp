@@ -180,6 +180,40 @@ namespace car
 		return res;
 		
 	}
+
+
+	bool MainSolver::solve_with_assumption_for_inv_test (Cube& s,bool forward){
+		//add temporary clause
+		int flag = max_flag_++;
+		vector<int> cl;
+		cl.push_back (-flag);
+		for (int i = 0; i < s.size (); ++i)
+		{
+			if (!forward)
+				cl.push_back (-model_->prime (s[i]));
+			else
+				cl.push_back (-s[i]);
+		}
+		add_clause (cl);
+		
+		//add assumptions
+		assumption_.clear ();
+		
+		for (int i = 0; i < s.size(); ++i){
+			if (forward)
+				assumption_push (model_->prime (s[i]));
+			else
+				assumption_push (s[i]);
+		}
+		
+		assumption_push (flag);
+			
+		bool res = solve_with_assumption ();
+		add_clause (-flag);
+		
+		return res;
+		
+	}
 	
 	void MainSolver::shrink_model (Assignment& model, const bool forward, const bool partial)
 	{

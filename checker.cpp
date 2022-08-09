@@ -390,7 +390,9 @@ namespace car
 		    if (propagate (cu, n)){
 		    	push_to_frame (cu, n+1);
 				stats_->count_propagate_success_();
-		    }
+				// bool res = test_solver_->solve_with_assumption_for_inv_test(cu,forward_);//check if cu is inv
+		    	// std::cout<<"test inv res is: "<<res<<std::endl;
+			}
 		    else
 		    	flag = false;
 		}
@@ -426,6 +428,7 @@ namespace car
 		dead_solver_ = NULL;
 		start_solver_ = NULL;
 		inv_solver_ = NULL;
+		test_solver_ = NULL;
 		init_ = new State (model_->init ());
 		last_ = NULL;
 		forward_ = forward;
@@ -490,6 +493,7 @@ namespace car
 	    	dead_solver_->add_clause (-bad_);
 	    }
 		start_solver_ = new StartSolver (model_, bad_, forward_, verbose_);
+		test_solver_ = new MainSolver (model_, stats_, verbose_);
 		assert (F_.empty ());
 		assert (B_.empty ());
 		
@@ -522,6 +526,10 @@ namespace car
 	    if (start_solver_ != NULL) {
 	        delete start_solver_;
 	        start_solver_ = NULL;
+	    }
+		if (test_solver_ != NULL) {
+	        delete test_solver_;
+	        test_solver_ = NULL;
 	    }
 	}
 	
@@ -866,7 +874,6 @@ namespace car
 	{	
 		bool constraint = false;
 		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
-		
 		/*
 		Cube dead_uc;
 		if (is_dead (s, dead_uc)){

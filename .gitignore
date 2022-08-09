@@ -1,0 +1,8 @@
+*.gv
+*.log
+*.res
+*.ps
+*.aig
+*.o
+simplecar
+.vscode

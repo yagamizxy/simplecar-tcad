@@ -109,6 +109,7 @@ namespace car
 		MainSolver *lift_, *dead_solver_;
 		StartSolver *start_solver_;
 		InvSolver *inv_solver_;
+		MainSolver *test_solver_; // check if a uc is inv (!uc -> uc)
 		Fsequence F_;
 		Bsequence B_;
 		Frame frame_;   //to store the frame willing to be added in F_ in one step
