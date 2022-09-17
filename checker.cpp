@@ -31,7 +31,7 @@ using namespace std;
 namespace car
 {
     ///////////////////////////////////main functions//////////////////////////////////
-    bool Checker::check (std::ofstream& out){
+    void Checker::check (std::ofstream& out){
 		Cube& bads = (model_->num_bad () == 0)?model_->outputs():model_->bads();
 	    for (int i = 0; i < bads.size(); i ++){
 	        bad_ = bads[i];
@@ -61,7 +61,7 @@ namespace car
 	        	if (verbose_){
 	        		cout << "return UNSAT since the output is false" << endl;
 	        	}
-	        	return false;
+	        	//return false;
 	        }
 	        
 	        car_initialization ();
@@ -75,7 +75,7 @@ namespace car
     			print_evidence (out);
     		out << "." << endl;
 	        car_finalization ();
-	        return res;
+	        //return res;
 	    }
 	}
 	
@@ -145,7 +145,7 @@ namespace car
 			if (invariant_found (frame_level+1)){
 				if (verbose_){
 					cout << "return UNSAT from invariant found at frame " << F_.size ()-1 << endl;
-					print ();	
+					//print ();	
 				}
 				return false;
 			}

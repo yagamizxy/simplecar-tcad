@@ -244,8 +244,8 @@ void check_aiger (int argc, char** argv)
    model = new Model (aig, forward);
    stats.count_model_construct_time_end ();
    
-   if (verbose)
-    model->print ();
+   //if (verbose)
+   // model->print ();
    
    State::set_num_inputs_and_latches (model->num_inputs (), model->num_latches ());
    
@@ -257,7 +257,7 @@ void check_aiger (int argc, char** argv)
 
    aiger_reset(aig);
    
-   bool res = ch->check (res_file);
+   ch->check (res_file);
     
    delete model;
    model = NULL;
